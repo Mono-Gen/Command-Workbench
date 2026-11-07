@@ -20,7 +20,7 @@ Equipment manuals describe control commands in their own notation (`[CR]`, `<CR>
 | **Device (virtual device)** | Pretends to be a device, driven by a definition file you can read and write (JSON, no scripts). Practice without equipment, or check how your control side copes with a device that goes silent. |
 | **Relay (record traffic)** | Sits between a controller and a real device, passes everything through unchanged, records it, and can draft a virtual-device definition from the recording. |
 
-It does not emulate any specific manufacturer's or model's device, and it is **not a guarantee of how real equipment behaves**. Commands that change settings really do change the device.
+It does not emulate any specific manufacturer's or model's device, and it is **not a guarantee of how real equipment behaves**. Commands that change settings really do change the device. **It is a tool for practice and testing: do not use it on equipment that is in live service.** Use test equipment or the virtual device.
 
 ## Download and start
 
