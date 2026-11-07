@@ -120,3 +120,5 @@ npm run package # 配布用の ZIP を作る(先に dist が必要)
 ## ライセンス
 
 MIT。[LICENSE](LICENSE) を参照してください。プログラムは Electron と Chromium の上に作られています。それらのライセンス表示は、ダウンロードの `licenses` フォルダにあります。セキュリティ上の問題の報告は、[SECURITY.md](SECURITY.md) を参照してください。
+
+「Command Workbench」は、個人が公開する独立したオープンソースプロジェクトの名前です。似た名前を使う企業・製品とは、提携・承認・関係のいずれもありません。文中に出る製品名・会社名(Windows、Electron、GitHub など)は各権利者のもので、対応環境の説明のためにだけ使っています。

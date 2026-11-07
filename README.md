@@ -120,3 +120,5 @@ Local-only working folders (`.agents/`, `.tasks/`, `.docs/`, `.scratch/`, `.scri
 ## License
 
 MIT. See [LICENSE](LICENSE). The program is built on Electron and Chromium; their license notices are in the `licenses` folder of the download. To report a security problem, see [SECURITY.md](SECURITY.md).
+
+"Command Workbench" is the name of this independent, personal open-source project. It is not affiliated with, endorsed by, or connected to any company or product that uses a similar name. All product and company names mentioned (such as Windows, Electron and GitHub) belong to their respective owners and are used only to describe compatibility.
