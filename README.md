@@ -4,7 +4,7 @@
 
 A Windows desktop tool for sending control commands to AV and other network devices, and reading what they answer. It shows you the exact bytes before anything is sent, explains what to check when a device stays silent, and includes a virtual device to practice against when you have no real equipment.
 
-> **Status: early version, not released yet.** Everything described below works.
+> **Status: early version (0.1.0).** Everything described below works.
 
 ![The controller: commands sent to a device, with the exact bytes and the replies](manual/images/en-04-controller-log.png)
 
