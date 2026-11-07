@@ -41,9 +41,9 @@ You can also **Save…** a recording to a file you choose, and **Load…** it ag
 
 The draft only contains what the recording shows **for certain**:
 
-1. It guesses the **terminator** of the requests (CR, LF or CR+LF) by counting. You can choose it yourself.
-2. It splits the traffic into messages and pairs each request with the reply that followed it, but **only when one request was sent at a time**. Requests sent closer together than the minimum gap (250 ms by default) are left out, because it is unclear which reply belongs to which.
-3. A request that always got the same reply becomes a command with that reply (exactly as seen, including its line ending). A request that never got a reply becomes a silent command. A message that every connection started with becomes the message on connect.
+1. It guesses the **terminator** of the commands (CR, LF or CR+LF) by counting. You can choose it yourself.
+2. It splits the traffic into messages and pairs each command with the reply that followed it, but **only when one command was sent at a time**. Commands sent closer together than the minimum gap (250 ms by default) are left out, because it is unclear which reply belongs to which.
+3. A command that always got the same reply becomes a saved command with that reply (exactly as seen, including its line ending). A command that never got a reply becomes a silent saved command. A message that every connection started with becomes the message on connect.
 
 Replies may end with CR, LF or CR+LF, and may even differ from one command to the next; the draft writes down the exact bytes.
 
@@ -53,18 +53,18 @@ Everything the draft could **not** decide is listed, with a count and examples:
 
 | Item | What it means |
 |---|---|
-| Depends on state | The reply to a request changed between times (for example a power query before and after switching on). Left out: add variables yourself. |
+| Depends on state | The reply to a command changed between times (for example a power query before and after switching on). Left out: add variables yourself. |
 | Seen once | Included, but one observation does not show that the reply is always the same. |
-| Unclear which reply belongs to which | Requests came back to back, or the gap was shorter than the minimum. Left out. |
+| Unclear which reply belongs to which | Commands came back to back, or the gap was shorter than the minimum. Left out. |
 | Reply in several lines | A recording cannot tell a multi-line reply from something the device said on its own. |
-| No line ending | A reply without a line ending is never treated as "no reply". Those requests are left out. |
+| No line ending | A reply without a line ending is never treated as "no reply". Those commands are left out. |
 | Cannot be read as text, too long, too many | Left out. |
 | The message on connect differs | The message on connect is not included. |
 | Variables | The device state is **never** guessed from a recording. |
 
 ### How reliable is it
 
-When the recording has two or more connections, the app makes the draft from some of them and tries it on the others, and shows how many requests got the same reply. It is only a hint: requests that depend on state count against it, and the app cannot know what a real device would do with a request it has never seen.
+When the recording has two or more connections, the app makes the draft from some of them and tries it on the others, and shows how many commands got the same reply. It is only a hint: commands that depend on state count against it, and the app cannot know what a real device would do with a command it has never seen.
 
 ## What it cannot do yet
 

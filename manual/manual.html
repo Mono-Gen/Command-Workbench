@@ -212,7 +212,7 @@
 
 <h3>Repeat sending (keeping a connection alive)</h3>
 <p>Some devices close the connection when no command arrives for a while. <span class="ui">Repeat sending</span> helps prevent that by sending <strong>only a query command</strong> at a fixed interval. Press <span class="ui">Repeat</span> on a saved command, set the interval (seconds) in the right column and press <span class="ui">Start</span>. It cannot be started while Read-only is on, and it stops when the connection ends.</p>
-<p>Separately, there is a <span class="ui">TCP keepalive</span> box. That is the operating system checking that the other side has not disappeared; a device does not necessarily count it as activity.</p>
+<p>Separately, there is a <span class="ui">Connection check (TCP keepalive)</span> box. That is the operating system checking that the other side has not disappeared; a device does not necessarily count it as activity.</p>
 
 <h3>Diagnostic hints</h3>
 <p>When you cannot connect, get no reply, or are disconnected, <span class="ui">Diagnostic hints</span> on the right shows "what to check next". A hint is a <strong>possible</strong> cause, not a conclusion.</p>
@@ -247,7 +247,7 @@
 <h3>Fault injection</h3>
 <p>While the device is running you can cause, on purpose, problems that real devices have. It is for practising how the controlling side copes.</p>
 <ul>
-  <li><span class="ui">Drop the next replies</span> makes replies disappear.</li>
+  <li><span class="ui">Number of next replies to drop</span> makes that many replies disappear.</li>
   <li><span class="ui">Delay replies (ms)</span> adds the given delay to every reply.</li>
   <li><span class="ui">Stop responding (mute)</span> keeps accepting commands but replies to none.</li>
   <li><span class="ui">Close all connections now</span> disconnects from the device side.</li>

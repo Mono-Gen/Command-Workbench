@@ -38,7 +38,7 @@ Limits that protect other equipment: at most 5 new "connections" per 10 seconds,
 
 Add `"transport": "udp"` to a definition (see [Writing a device definition](device-definition.md)), or choose the definition **Sample UDP unit** from the list. The tab then listens for datagrams instead of connections.
 
-- Each datagram is one request. The answer goes back to the **sender**, from the port the device listens on.
+- Each datagram is one command. The answer goes back to the **sender**, from the port the device listens on.
 - Each sender (address and port) is a **source**, listed instead of connections. The device state is **shared** by all sources, as with several TCP connections. A notification addressed to `all` goes to the sources that have talked to the device recently.
 - `maxConnections` limits how many sources are served at once; datagrams from further sources are **ignored** (both values of `overLimit` behave this way). `minCommandIntervalMs`, `startupQuietMs` and the fault injection work as in TCP; **Close all connections** makes the device forget all sources.
 - A source is forgotten after `idleTimeoutMs` without a datagram, or after **300 seconds** when that is `0`. Both `idleBehavior` values mean "forget the source"; it is served again at its next datagram.
