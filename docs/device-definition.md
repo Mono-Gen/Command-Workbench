@@ -8,6 +8,24 @@ It is **not** a programming language: there are no expressions, scripts or regul
 
 > A virtual device behaves only as its definition says. It is a way to practice and to see how a controller copes with common device behaviors. It is **not a guarantee of how real equipment behaves**.
 
+## The quick way: make a definition from a table
+
+You do not have to write JSON for a first definition. On the **virtual device** tab, press **Make from a table…**. A window opens with a table that works like the command table in a device manual:
+
+- **Command**: what the device receives, without the terminator (for example `PWR?`).
+- **Reply**: what the device answers (for example `PWR on`). Leave it empty for a command the device accepts **silently**.
+
+Above the table you choose the **name**, **TCP or UDP**, the **terminator** (CR, LF or CR+LF) and, for TCP, the **message on connect** (optional). You can also set the reply to an **unknown command**.
+
+- The terminator you chose is added to the end of every reply, of the message on connect and of the unknown-command reply. Do not write it in a cell: a terminator such as `[CR]` at the end of a cell is reported as a mistake.
+- Notation such as `[TAB]` or `[LF]` works inside a reply, as in the controller.
+- Everything you type is literal text. `{`, `}` and `*` are not special here (they are in a JSON definition).
+- Spaces around a command are ignored. Two rows with the same command are a mistake: the first one would always win.
+- **Paste rows from a manual table** takes lines copied from a spreadsheet or a manual: one command per line, the command and the reply separated by a tab. A terminator written at the end of a cell is removed.
+- The **resulting definition (JSON)** on the right changes as you edit. It is exactly what **Use this definition** loads and what **Save as…** writes, so you can learn the format from it.
+
+A table covers fixed replies only. For a device that has state (the answer to `PWR?` changes after `PWR 1`), conditions, notifications or connection quirks, write the JSON described on the rest of this page. You can start from a file saved here and edit it in a text editor.
+
 ## Samples and your own definitions
 
 The `samples` folder next to the program holds the definitions that come with the program as plain files. Open them to see how a definition is written. Copy one, change it, and save it in the same folder (a file name of letters, digits, `.`, `_` and `-` ending in `.json`, at most 64 characters, under 1 MiB): after **Reload list** in the device tab it appears in the **Definition** list. A file that cannot be used (broken JSON, no `name`) is listed with the reason and cannot be chosen; a file that is valid JSON but breaks the rules below is reported with the position of every problem when you load it. If there is no `samples` folder, the built-in samples are used; an existing folder is used on its own, even when empty. You can also load any definition file from anywhere with **Choose a file…**.
@@ -52,7 +70,7 @@ What happens: `PWR ?` answers with the state; `PWR 1` changes the state and says
 | `transport` | Optional: `"tcp"` (default) or `"udp"`. For UDP see [Using UDP](udp.md): a datagram is a message, senders are tracked instead of connections, and `greeting` is not allowed. |
 | `name`, `description` | Shown in the app (name 1-100 characters, description up to 500). |
 | `framing.terminator` | `cr`, `lf` or `crlf`. A *message* is the bytes before the terminator. In `crlf` mode only the exact pair CR LF ends a message. A message longer than 4096 bytes is discarded and answered as unknown. |
-| `greeting` | Optional text sent right after a connection is accepted. Not allowed with `"transport": "udp"` (no connection to greet on). |
+| `greeting` | Optional text sent right after a connection is accepted: the message on connect. Not allowed with `"transport": "udp"` (there is no connection to send it on). |
 | `connection` | Limits and timing (see below). |
 | `variables` | The device state. |
 | `commands` | What the device understands, in order. |
@@ -135,10 +153,10 @@ All fields are optional. With `"transport": "udp"` the same fields count **sende
 | Field | Meaning |
 |---|---|
 | `maxConnections` | How many controllers may be connected at once (1-32, default 1). |
-| `overLimit` | `refuse`: close the extra connection at once. `accept_then_close`: greet it, then close. (A listening port cannot truly refuse one client, so both accept first.) |
+| `overLimit` | `refuse`: close the extra connection at once. `accept_then_close`: send it the message on connect, then close. (A listening port cannot truly refuse one client, so both accept first.) |
 | `idleTimeoutMs` | If the controller sends **no complete command** for this long (1000-3600000; 0 = never), `idleBehavior` happens. TCP keepalive does **not** count: the point of this setting is that some devices drop quiet connections even when the network is fine. |
 | `idleBehavior` | `close`: close the connection. `stop_responding`: stay connected but never answer again on that connection (the state still changes). |
-| `startupQuietMs` | Connections made in the first moments after **Start** are closed at once without a greeting, like a device that is still booting (0-600000). |
+| `startupQuietMs` | Connections made in the first moments after **Start** are closed at once without a message on connect, like a device that is still booting (0-600000). |
 | `minCommandIntervalMs` | A command that arrives sooner than this after the previous one is ignored. |
 
 ## Limits

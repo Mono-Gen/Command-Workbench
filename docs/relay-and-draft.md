@@ -43,7 +43,7 @@ The draft only contains what the recording shows **for certain**:
 
 1. It guesses the **terminator** of the requests (CR, LF or CR+LF) by counting. You can choose it yourself.
 2. It splits the traffic into messages and pairs each request with the reply that followed it, but **only when one request was sent at a time**. Requests sent closer together than the minimum gap (250 ms by default) are left out, because it is unclear which reply belongs to which.
-3. A request that always got the same reply becomes a command with that reply (exactly as seen, including its line ending). A request that never got a reply becomes a silent command. A greeting that every connection started with becomes the greeting.
+3. A request that always got the same reply becomes a command with that reply (exactly as seen, including its line ending). A request that never got a reply becomes a silent command. A message that every connection started with becomes the message on connect.
 
 Replies may end with CR, LF or CR+LF, and may even differ from one command to the next; the draft writes down the exact bytes.
 
@@ -59,7 +59,7 @@ Everything the draft could **not** decide is listed, with a count and examples:
 | Reply in several lines | A recording cannot tell a multi-line reply from something the device said on its own. |
 | No line ending | A reply without a line ending is never treated as "no reply". Those requests are left out. |
 | Cannot be read as text, too long, too many | Left out. |
-| Greeting differs | The greeting is not included. |
+| The message on connect differs | The message on connect is not included. |
 | Variables | The device state is **never** guessed from a recording. |
 
 ### How reliable is it

@@ -121,5 +121,37 @@
     return text === key ? unknown(result.code) : text;
   }
 
-  return { visibleControls, formatClock, hexLine, charLine, nextDefaultName, withDevice, withoutDevice, withCommand, withoutCommand, describeFailure };
+  // Rows from text copied out of a manual's command table (or a spreadsheet): one line per row, the
+  // command and the reply separated by a tab. A terminator written in manual notation at the end of a
+  // cell is dropped, because the table adds the terminator itself. Returns the rows and how many
+  // cells had one removed, so the page can say so instead of changing text silently.
+  // The hex spellings count only after a character that is not a letter or digit: that is the notation
+  // parser's own rule ("abc0x0D" is ordinary text there).
+  const TRAILING_TERMINATOR = /(?:\s*(?:\[(?:CR|LF|CRLF)\]|<(?:CR|LF|CRLF)>|\\r|\\n|\\x0[da]|(?<![0-9A-Za-z])0x0[da]))+\s*$/i;
+  // A terminator is at the very end of a cell, so only the end is searched: a huge pasted cell cannot
+  // make the pattern slow.
+  const TAIL_LENGTH = 200;
+
+  function parseTablePaste(text) {
+    const rows = [];
+    let stripped = 0;
+    const clean = (cell) => {
+      const trimmed = cell.trim();
+      const head = trimmed.length > TAIL_LENGTH ? trimmed.slice(0, -TAIL_LENGTH) : '';
+      const tail = trimmed.length > TAIL_LENGTH ? trimmed.slice(-TAIL_LENGTH) : trimmed;
+      const without = (head + tail.replace(TRAILING_TERMINATOR, '')).trimEnd();
+      if (without !== trimmed) stripped += 1;
+      return without;
+    };
+    for (const line of String(text).split(/\r\n|\n|\r/)) {
+      if (line.trim().length === 0) continue;
+      const tab = line.indexOf('\t');
+      const command = tab === -1 ? line : line.slice(0, tab);
+      const reply = tab === -1 ? '' : line.slice(tab + 1).split('\t')[0];
+      rows.push({ command: clean(command), reply: clean(reply) });
+    }
+    return { rows, stripped };
+  }
+
+  return { parseTablePaste, visibleControls, formatClock, hexLine, charLine, nextDefaultName, withDevice, withoutDevice, withCommand, withoutCommand, describeFailure };
 }));

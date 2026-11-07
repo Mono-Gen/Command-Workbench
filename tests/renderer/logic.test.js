@@ -121,3 +121,40 @@ test('withDevice keeps the UDP settings of a device and drops them when it becom
   assert.deepEqual(udp.devices[0].localPort, 5100, 'the input is not mutated');
 });
 
+
+test('parseTablePaste: tab-separated lines become rows; a terminator written at the end of a cell is dropped and counted', () => {
+  const text = ['PWR?[CR]\tPWR on[CR][LF]', 'SET 1\tOK<CR>', 'GET\tVAL\\r\\n', ''].join('\r\n');
+  assert.deepEqual(L.parseTablePaste(text), {
+    rows: [{ command: 'PWR?', reply: 'PWR on' }, { command: 'SET 1', reply: 'OK' }, { command: 'GET', reply: 'VAL' }],
+    stripped: 4,
+  });
+});
+
+test('parseTablePaste: a line without a tab is a command with no reply; blank lines are skipped; spaces around cells are trimmed', () => {
+  assert.deepEqual(L.parseTablePaste('  A  \n\n   \nB\tb  \n'), {
+    rows: [{ command: 'A', reply: '' }, { command: 'B', reply: 'b' }],
+    stripped: 0,
+  });
+  assert.deepEqual(L.parseTablePaste(''), { rows: [], stripped: 0 });
+});
+
+test('parseTablePaste: hex spellings of a terminator are dropped too, but only where the notation parser reads them as a byte', () => {
+  const text = ['A\tX 0x0D', 'B\tY\\x0D', 'C\tZ 0x0d 0x0A', 'D\tkeep0x0D', 'E\tmid 0x0D end'].join('\n');
+  assert.deepEqual(L.parseTablePaste(text), {
+    rows: [
+      { command: 'A', reply: 'X' }, { command: 'B', reply: 'Y' }, { command: 'C', reply: 'Z' },
+      { command: 'D', reply: 'keep0x0D' }, { command: 'E', reply: 'mid 0x0D end' },
+    ],
+    stripped: 3,
+  });
+});
+
+test('parseTablePaste: a long cell is handled quickly (no pathological backtracking)', () => {
+  const started = Date.now();
+  L.parseTablePaste(`A\t${'[CR]x'.repeat(2000)}\nB\t${' '.repeat(5000)}x`);
+  assert.ok(Date.now() - started < 1000);
+});
+
+test('parseTablePaste: only the first two columns are used, and notation inside a cell is kept', () => {
+  assert.deepEqual(L.parseTablePaste('A[TAB]B\tC\tignored'), { rows: [{ command: 'A[TAB]B', reply: 'C' }], stripped: 0 });
+});

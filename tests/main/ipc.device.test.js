@@ -66,3 +66,57 @@ test('deviceSetFault: known fields only, with their types', async () => {
     assert.deepEqual(await handlers.deviceSetFault(bad), INVALID, JSON.stringify(bad));
   }
 });
+
+// ---- table channels --------------------------------------------------------------------------
+
+function tableArg(overrides = {}) {
+  return {
+    name: 'N', transport: 'tcp', terminator: 'cr', greeting: '', unknownReply: '',
+    rows: [{ command: 'A', reply: 'a' }], ...overrides,
+  };
+}
+
+function tableSetup() {
+  const calls = [];
+  const rec = (name) => (arg) => { calls.push([name, arg]); return { ok: true }; };
+  const deviceService = { tablePreview: rec('tablePreview'), tableUse: rec('tableUse'), tableSave: rec('tableSave') };
+  return { handlers: createIpcHandlers({ service: {}, deviceService, setLocale: () => {} }), calls };
+}
+
+test('table channels pass a copy that holds only the known fields', async () => {
+  const { handlers, calls } = tableSetup();
+  const arg = tableArg({ rows: [{ command: 'A', reply: 'a' }, { command: 'B', reply: '' }] });
+  for (const channel of ['deviceTablePreview', 'deviceTableUse', 'deviceTableSave']) {
+    assert.equal((await handlers[channel](arg)).ok, true, channel);
+  }
+  assert.equal(calls.length, 3);
+  for (const [, passed] of calls) {
+    assert.deepEqual(passed, arg);
+    assert.notEqual(passed, arg, 'a copy, not the page object');
+    assert.notEqual(passed.rows[0], arg.rows[0]);
+  }
+});
+
+test('table channels refuse a malformed table before the service sees it', async () => {
+  const { handlers, calls } = tableSetup();
+  const many = Array.from({ length: 601 }, () => ({ command: 'A', reply: 'a' }));
+  const bad = [
+    undefined, null, 'x', [], {}, tableArg({ extra: 1 }), tableArg({ path: 'C:/x' }), tableArg({ name: 5 }),
+    tableArg({ name: 'x'.repeat(2001) }), tableArg({ transport: 'ftp' }), tableArg({ terminator: 'none' }),
+    tableArg({ greeting: null }), tableArg({ unknownReply: 'x'.repeat(2001) }), tableArg({ rows: 'x' }),
+    tableArg({ rows: many }), tableArg({ rows: [null] }), tableArg({ rows: [{ command: 'A' }] }),
+    tableArg({ rows: [{ command: 'A', reply: 'a', extra: 1 }] }), tableArg({ rows: [{ command: 1, reply: 'a' }] }),
+    tableArg({ rows: [{ command: 'x'.repeat(2001), reply: 'a' }] }), tableArg({ rows: [{ command: 'A', reply: 'x'.repeat(2001) }] }),
+  ];
+  for (const channel of ['deviceTablePreview', 'deviceTableUse', 'deviceTableSave']) {
+    for (const arg of bad) assert.deepEqual(await handlers[channel](arg), INVALID, `${channel} ${JSON.stringify(arg)?.slice(0, 60)}`);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('table channels accept the boundary sizes (600 rows, 2000-character cells)', async () => {
+  const { handlers, calls } = tableSetup();
+  const rows = Array.from({ length: 600 }, () => ({ command: 'c'.repeat(2000), reply: 'r'.repeat(2000) }));
+  assert.equal((await handlers.deviceTablePreview(tableArg({ rows, name: 'n'.repeat(2000) }))).ok, true);
+  assert.equal(calls.length, 1);
+});

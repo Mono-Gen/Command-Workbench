@@ -165,6 +165,7 @@ function buildApp() {
     chooseFile: chooseDefinitionFile,
     sampleStore,
     confirm: confirmSend,
+    saveText: saveTextWithDialog,
     emit: emitToRenderer,
   });
   const recorder = createRecorder({ now: () => performance.now() });

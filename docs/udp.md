@@ -42,7 +42,7 @@ Add `"transport": "udp"` to a definition (see [Writing a device definition](devi
 - Each sender (address and port) is a **source**, listed instead of connections. The device state is **shared** by all sources, as with several TCP connections. A notification addressed to `all` goes to the sources that have talked to the device recently.
 - `maxConnections` limits how many sources are served at once; datagrams from further sources are **ignored** (both values of `overLimit` behave this way). `minCommandIntervalMs`, `startupQuietMs` and the fault injection work as in TCP; **Close all connections** makes the device forget all sources.
 - A source is forgotten after `idleTimeoutMs` without a datagram, or after **300 seconds** when that is `0`. Both `idleBehavior` values mean "forget the source"; it is served again at its next datagram.
-- A UDP definition cannot have a `greeting`: with no connection there is nothing to greet.
+- A UDP definition cannot have a `greeting`: with no connection there is nothing to send it on.
 - An empty datagram is ignored.
 
 **Listening on the whole network.** A UDP sender address can be **forged**, so another machine could make the virtual device send answers to a third party. The confirmation says so, and the program limits what it sends (about 32 KiB per second in total and 8 KiB per second per source) and what it accepts. This **reduces** the effect; it cannot remove it. Use the whole-network setting only on a network you trust.

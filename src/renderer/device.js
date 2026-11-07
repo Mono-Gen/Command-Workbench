@@ -211,7 +211,7 @@
     const running = D.server.running;
     $('vd-start').disabled = running || D.definition === null;
     $('vd-stop').disabled = !running;
-    for (const id of ['vd-load-file', 'vd-host', 'vd-port']) $(id).disabled = running;
+    for (const id of ['vd-load-file', 'vd-make-table', 'vd-host', 'vd-port']) $(id).disabled = running;
     // Choosing from the list needs a usable entry; reloading the list is always allowed.
     const noSample = !D.samples.items.some((sample) => sample.ok);
     $('vd-sample').disabled = running || noSample;
@@ -388,6 +388,15 @@
     // The first look at the samples folder.
     await refreshSamples();
   }
+
+  // What the "make from a table" dialog (table.js) needs from this view: it loads its result through
+  // the same path as every other load, and it must know whether the definition can be replaced now.
+  window.WbDeviceView = Object.freeze({
+    applyLoadResult,
+    failText,
+    refreshSamples,
+    isRunning: () => D.server.running,
+  });
 
   start0().catch((error) => {
     // Show why instead of leaving the tab silently empty.

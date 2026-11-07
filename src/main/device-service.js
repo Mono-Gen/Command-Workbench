@@ -8,6 +8,7 @@ const { parseDefinitionText } = require('../core/device-definition');
 const { createDeviceEngine } = require('../core/device-engine');
 const { isValidatedDefinition } = require('../core/device-definition');
 const { formatView } = require('../core/format-view');
+const { buildTableDefinition, tableDefinitionText } = require('../core/table-definition');
 const { ALLOWED_HOSTS, isValidPort } = require('./device-server');
 
 const STATE_TICK_MS = 1000;
@@ -54,6 +55,8 @@ function createDeviceService({
   // { list(), read(id) }: see sample-store.js. The page only ever sees ids from its list.
   sampleStore,
   confirm,
+  // Native "save as" dialog: ({ kind, makeText }) -> { ok, fileName } | { ok: false, code }. Optional.
+  saveText = null,
   emit = () => {},
   now = Date.now,
   scheduler = { setInterval, clearInterval },
@@ -72,6 +75,7 @@ function createDeviceService({
   // current definition, and starting is refused while one is on its way.
   let loadSeq = 0;
   let loadsInFlight = 0;
+  let tableSaving = false;
 
   const allServers = () => (udpServer === null ? [server] : [server, udpServer]);
   const serverFor = (definition) => (definition.transport === 'udp' && udpServer !== null ? udpServer : server);
@@ -274,6 +278,47 @@ function createDeviceService({
     return { ok: true, info };
   }
 
+  // ---- definition made from a table (the beginner path) -----------------------------------
+  //
+  // The page passes the table cells (checked again in ipc.js); this service builds the definition
+  // itself and the validator has the last word. Nothing is kept between calls: each one starts
+  // again from the table it was given, so the preview, "use" and "save" can never disagree.
+
+  function invalidTable(errors) {
+    return { ok: false, code: 'invalid_table', errors: errors.slice(0, MAX_ERRORS_TO_PAGE), totalErrors: errors.length };
+  }
+
+  function tablePreview(input) {
+    const built = buildTableDefinition(input);
+    return built.ok ? { ok: true, text: tableDefinitionText(built.json) } : invalidTable(built.errors);
+  }
+
+  function tableUse(input) {
+    if (isBusy()) return { ok: false, code: 'running' };
+    const built = buildTableDefinition(input);
+    if (!built.ok) return invalidTable(built.errors);
+    // A file dialog opened earlier must not replace this definition when it closes.
+    loadSeq += 1;
+    const info = describeDefinition(built.definition, { source: 'table', fileName: 'table.json' });
+    current = { definition: built.definition, info };
+    pushState({ force: true });
+    return { ok: true, info };
+  }
+
+  async function tableSave(input) {
+    if (saveText === null) return { ok: false, code: 'save_unavailable' };
+    if (tableSaving) return { ok: false, code: 'busy' };
+    const built = buildTableDefinition(input);
+    if (!built.ok) return invalidTable(built.errors);
+    tableSaving = true;
+    try {
+      const saved = await saveText({ kind: 'draft', makeText: () => tableDefinitionText(built.json) });
+      return saved.ok ? { ok: true, fileName: saved.fileName } : saved;
+    } finally {
+      tableSaving = false;
+    }
+  }
+
   // ---- server control -----------------------------------------------------------------
 
   async function start(args) {
@@ -340,7 +385,7 @@ function createDeviceService({
     stopTimers();
   }
 
-  return { handleServerEvent, loadFile, loadSample, refreshSamples, loadDraft, start, stop, setFault, closeAll, getState, shutdown };
+  return { handleServerEvent, loadFile, loadSample, refreshSamples, loadDraft, tablePreview, tableUse, tableSave, start, stop, setFault, closeAll, getState, shutdown };
 }
 
 module.exports = { createDeviceService, describeDefinition, MAX_ERRORS_TO_PAGE };

@@ -317,3 +317,35 @@ table.vars td.value { font-weight: 700; }
 .homework li { margin: 6px 0; }
 
 .samples-note { margin: 0; align-self: center; max-width: 360px; overflow-wrap: anywhere; }
+
+/* ---- "make a definition from a table" dialog ---- */
+dialog.wide { width: min(1100px, 96vw); max-height: 92vh; overflow: auto; }
+.table-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.table-edit, .table-result { min-width: 0; }
+.field.grow { flex: 1 1 200px; }
+.table-rows { max-height: 300px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 8px 0 4px; }
+table.rows { border-collapse: collapse; width: 100%; }
+table.rows th { text-align: left; padding: 4px; font-size: 12px; font-weight: 400; color: var(--muted); position: sticky; top: 0; background: var(--surface-2); }
+table.rows td { padding: 2px 4px; }
+table.rows td.num { width: 2.5em; text-align: right; color: var(--muted); font-size: 12px; }
+table.rows input { width: 100%; box-sizing: border-box; font-size: 13px; }
+.json-preview {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  margin: 4px 0;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+details.paste { margin: 8px 0; }
+details.paste textarea { width: 100%; box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 6px; }
+dialog [aria-invalid="true"] { border-color: var(--danger); outline: 2px solid var(--danger); outline-offset: -1px; }
+@media (max-width: 800px) {
+  .table-layout { grid-template-columns: minmax(0, 1fr); }
+}
+/* The buttons stay in view while the (tall) dialog scrolls in a small window. */
+.dialog-actions { position: sticky; bottom: -12px; background: var(--surface); padding: 8px 0; margin-bottom: -4px; border-top: 1px solid var(--border); }

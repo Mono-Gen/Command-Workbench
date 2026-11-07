@@ -20,7 +20,7 @@ const INVALID = { ok: false, code: 'invalid_arguments' };
 test('exposes exactly the documented channels', () => {
   assert.deepEqual([...CHANNELS].sort(), [
     'connect', 'deviceCloseAll', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceSetFault', 'deviceStart',
-    'deviceState', 'deviceStop', 'disconnect', 'init', 'parsePreview',
+    'deviceState', 'deviceStop', 'deviceTablePreview', 'deviceTableSave', 'deviceTableUse', 'disconnect', 'init', 'parsePreview',
     'relayClearRecording', 'relayDraft', 'relayLoadRecording', 'relaySaveDraft', 'relaySaveRecording', 'relayStart',
     'relayState', 'relayStop', 'relayUseDraft',
     'saveData', 'sendDirect', 'sendSaved',

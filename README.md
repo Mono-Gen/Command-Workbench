@@ -4,7 +4,7 @@
 
 A Windows desktop tool for sending control commands to AV and other network devices, and reading what they answer. It shows you the exact bytes before anything is sent, explains what to check when a device stays silent, and includes a virtual device to practice against when you have no real equipment.
 
-> **Status: early version (0.1.0).** Everything described below works.
+> **Status: early version (0.2.0).** Everything described below works.
 
 ![The controller: commands sent to a device, with the exact bytes and the replies](manual/images/en-04-controller-log.png)
 
@@ -24,12 +24,12 @@ It does not emulate any specific manufacturer's or model's device, and it is **n
 
 ## Download and start
 
-The program is a single Windows file; there is nothing to install. Extract the ZIP to a folder you can write to and run `Command Workbench-0.1.0-portable.exe`. A first start can take several seconds. The ZIP also holds this README (English and Japanese), the **manual** (`manual/manual.html`, with screenshots; GitHub shows HTML as source, so open it from the ZIP or a clone), `docs/` (the guides) and `samples/` (sample definitions you can read and copy).
+The program is a single Windows file; there is nothing to install. Extract the ZIP to a folder you can write to and run `Command Workbench-0.2.0-portable.exe`. A first start can take several seconds. The ZIP also holds this README (English and Japanese), the **manual** (`manual/manual.html`, with screenshots; GitHub shows HTML as source, so open it from the ZIP or a clone), `docs/` (the guides) and `samples/` (sample definitions you can read and copy).
 
 ## Your first three minutes (no equipment needed)
 
 1. Open the **Device (virtual device)** tab, choose **Sample matrix switch** from the **Definition** list and press **Start**. The port appears in the status badge.
-2. Open the **Controller** tab, enter `127.0.0.1` and that port, and press **Connect**. A greeting appears.
+2. Open the **Controller** tab, enter `127.0.0.1` and that port, and press **Connect**. The message on connect appears.
 3. Type `PWR?[CR]`. The exact bytes (`50 57 52 3F 0D`) appear under the input box. Press **Send**.
 4. Try `PWR 1[CR]` (silent on success, then a notification), `OUT1 3[CR]` and `OUT1 9[CR]` (an error), and watch both sides.
 5. In the device tab, try **Fault injection** (drop a reply, add a delay, close all connections) and see which hint appears in the controller.
@@ -46,6 +46,7 @@ To use a real device, enter its IP address and port instead. Read "Staying safe 
 ## What it can do
 
 - **Manual notation in, exact bytes out.** Type `GETPWR[CR]` and see `47 45 54 50 57 52 0D` before anything is sent.
+- **A table instead of JSON for a first virtual device.** Copy the command table from a manual (or paste it), and the program writes the definition for you and shows the JSON beside it.
 - **Hex and text side by side.** CR and LF are colored and drawn with symbols so they cannot hide.
 - **Diagnostic hints.** When there is no reply, the connection is refused, or the device closes the connection, the app suggests what to check next. Hints are possible causes, not conclusions.
 - **Saved commands per device**, with a read-only mode and a "query" / "set" classification. Connection keep-alive options: TCP keepalive, and sending a query command at a fixed interval.

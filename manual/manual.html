@@ -67,7 +67,7 @@
 </ul>
 
 <h3>Starting the program</h3>
-<p>Extract the downloaded ZIP to a folder you can write to (the desktop or Documents, for example) and run <code>Command Workbench-0.1.0-portable.exe</code>. There is no installer.</p>
+<p>Extract the downloaded ZIP to a folder you can write to (the desktop or Documents, for example) and run <code>Command Workbench-0.2.0-portable.exe</code>. There is no installer.</p>
 <ul>
   <li>The first start can take a few seconds.</li>
   <li>The program is not code-signed, so Windows or your antivirus software may show a warning. Check where you downloaded it from, then decide whether to run it.</li>
@@ -90,7 +90,7 @@
     <p>Press <span class="ui">Start</span>. The badge at the top right reads <span class="ui">Listening 127.0.0.1:<em>number</em></span>. <strong>Remember this port number</strong>; it changes every time you start.</p>
   </li>
   <li>
-    <p><strong>Connect to it from the Controller tab.</strong> Open the "Controller (sender)" tab, enter <code>127.0.0.1</code> as the <span class="ui">Target</span> and the port number you noted as the <span class="ui">Port</span>, and press <span class="ui">Connect</span>. The badge turns to <span class="ui">Connected</span>, and the device's greeting <code>SAMPLE MATRIX READY</code> appears in <span class="ui">Traffic</span>.</p>
+    <p><strong>Connect to it from the Controller tab.</strong> Open the "Controller (sender)" tab, enter <code>127.0.0.1</code> as the <span class="ui">Target</span> and the port number you noted as the <span class="ui">Port</span>, and press <span class="ui">Connect</span>. The badge turns to <span class="ui">Connected</span>, and the device's message on connect <code>SAMPLE MATRIX READY</code> appears in <span class="ui">Traffic</span>.</p>
   </li>
   <li>
     <p><strong>Send a command.</strong> Type <code>VER?[CR]</code> in the input box. Under it, <span class="ui">Bytes to send</span> shows what will really be sent (<code>56 45 52 3F 0D</code>). Check that <code>[CR]</code> became <code>0D</code> (a control character that acts as a line ending), then press <span class="ui">Send</span> (or Enter).</p>
@@ -261,6 +261,20 @@
   <p>If you set <span class="ui">Listen on</span> to <span class="ui">0.0.0.0 (the whole network)</span>, other devices on the same network can connect too. A confirmation appears, and a warning stays visible while it runs. Use it only on a network you trust, and leave it at <span class="ui">127.0.0.1 (this PC only)</span> unless you need otherwise. The first time, the Windows firewall may ask for permission.</p>
 </div>
 
+<h3>Making a definition from a table</h3>
+<p>You do not have to write JSON for a first definition. Press <span class="ui">Make from a table…</span> next to the <span class="ui">Definition</span> list. A window opens with a table like the command table in a device manual: one row per command, with the <span class="ui">Command</span> the device receives and the <span class="ui">Reply</span> it gives. Leave the reply empty for a command the device accepts silently.</p>
+<figure>
+  <img src="images/en-10-table-dialog.png" alt="The window for making a definition from a table: name, transport and terminator at the top, a table of commands and replies on the left, and the resulting JSON definition on the right" width="1100" height="617">
+  <figcaption>The table window. The JSON on the right changes as you type; it is what <span class="ui">Use this definition</span> loads and <span class="ui">Save as…</span> writes.</figcaption>
+</figure>
+<ul>
+  <li>Choose the <span class="ui">Terminator</span> once. It is added to the end of every reply, so do not write <code>[CR]</code> at the end of a cell (that is shown as a mistake).</li>
+  <li><span class="ui">Message on connect</span> is sent right after a connection and is optional. <span class="ui">Reply to an unknown command</span> is sent when nothing in the table matches; empty means no reply.</li>
+  <li><span class="ui">Paste rows from a manual table</span> takes lines copied from a spreadsheet or a manual: the command and the reply separated by a tab, one command per line.</li>
+  <li>A mistake (for example the same command twice) is shown with its row number, and the buttons stay disabled until it is fixed.</li>
+  <li>A table covers fixed replies only. A device whose state changes, or one that needs conditions, notifications or connection quirks, needs a JSON definition (see <a href="#definition">9. Writing a definition</a>).</li>
+</ul>
+
 <h3>Your own definitions</h3>
 <p>Put a definition file (<code>.json</code>) in the <code>samples</code> folder next to the program and press <span class="ui">Reload list</span>; it appears in the list. Opening a sample also shows how to write one. If there is no <code>samples</code> folder, the samples built into the program are used (and the screen says so).</p>
 
@@ -363,6 +377,7 @@
   <li><strong>Notifications</strong> — things the device says by itself (when its state changes, for example).</li>
   <li><strong>Connection quirks</strong> — a connection limit, idle disconnect, silence just after start-up, and so on.</li>
 </ul>
+<p>For a first definition with fixed replies only, the table window on the Device tab is easier (see <a href="#device">6. Device</a>); it also shows the JSON it makes. The rest of this section is for what a table cannot do.</p>
 <p>A minimal example (a device whose power can be queried and switched):</p>
 <pre><code>{
   "schemaVersion": 1,
@@ -534,7 +549,7 @@
   <dd>Something that sits between two parties and passes their traffic on. The Relay in this tool records the traffic while it does so.</dd>
 </dl>
 
-<p class="footer">Manual for Command Workbench 0.1.0. This program does not guarantee the behaviour of any particular manufacturer's or model's device. For the license, see the bundled LICENSE.</p>
+<p class="footer">Manual for Command Workbench 0.2.0. This program does not guarantee the behaviour of any particular manufacturer's or model's device. For the license, see the bundled LICENSE.</p>
 </main>
 </div>
 </body>

@@ -5,7 +5,7 @@
 const CHANNELS = [
   'init', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setReadOnly', 'setKeepAlive',
   'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic', 'setLocale',
-  'deviceState', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceStart', 'deviceStop', 'deviceSetFault', 'deviceCloseAll',
+  'deviceState', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceTablePreview', 'deviceTableUse', 'deviceTableSave', 'deviceStart', 'deviceStop', 'deviceSetFault', 'deviceCloseAll',
   'relayState', 'relayStart', 'relayStop', 'relayClearRecording', 'relaySaveRecording', 'relayLoadRecording',
   'relayDraft', 'relaySaveDraft', 'relayUseDraft',
 ];
@@ -17,6 +17,30 @@ const MAX_TEXT_UNITS = 1048576;
 const DEVICE_HOSTS = ['127.0.0.1', '0.0.0.0'];
 // 0 asks the OS for a free port; below 1024 is never useful for a practice device.
 const isDevicePort = (port) => Number.isInteger(port) && (port === 0 || (port >= 1024 && port <= 65535));
+
+// The table of the "make a definition" dialog. Cells are plain text; the service builds the
+// definition and the validator judges it. The caps here only keep a hostile page from sending a
+// huge value (the real limits are in table-definition.js and are reported per row).
+const TABLE_TRANSPORTS = ['tcp', 'udp'];
+const TABLE_MAX_ROWS = 600;
+const TABLE_MAX_CELL = 2000;
+
+function readTable(arg) {
+  if (!isPlainWithKeys(arg, ['name', 'transport', 'terminator', 'greeting', 'unknownReply', 'rows'])) return null;
+  const { name, transport, terminator, greeting, unknownReply, rows } = arg;
+  if (![name, greeting, unknownReply].every((v) => typeof v === 'string' && v.length <= TABLE_MAX_CELL)) return null;
+  if (!TABLE_TRANSPORTS.includes(transport) || !RELAY_TERMINATORS.includes(terminator)) return null;
+  if (!Array.isArray(rows) || rows.length > TABLE_MAX_ROWS) return null;
+  const copy = [];
+  for (const row of rows) {
+    if (!isPlainWithKeys(row, ['command', 'reply'])) return null;
+    if (typeof row.command !== 'string' || typeof row.reply !== 'string') return null;
+    if (row.command.length > TABLE_MAX_CELL || row.reply.length > TABLE_MAX_CELL) return null;
+    copy.push({ command: row.command, reply: row.reply });
+  }
+  // Only the known fields are passed on.
+  return { name, transport, terminator, greeting, unknownReply, rows: copy };
+}
 
 const RELAY_SOURCES = ['live', 'loaded'];
 const RELAY_TERMINATORS = ['cr', 'lf', 'crlf'];
@@ -146,6 +170,21 @@ function createIpcHandlers({ service, deviceService, relayService, setLocale, on
     }),
 
     deviceRefreshSamples: guard((arg) => (arg === undefined ? deviceService.refreshSamples() : INVALID)),
+
+    deviceTablePreview: guard((arg) => {
+      const table = readTable(arg);
+      return table === null ? INVALID : deviceService.tablePreview(table);
+    }),
+
+    deviceTableUse: guard((arg) => {
+      const table = readTable(arg);
+      return table === null ? INVALID : deviceService.tableUse(table);
+    }),
+
+    deviceTableSave: guard((arg) => {
+      const table = readTable(arg);
+      return table === null ? INVALID : deviceService.tableSave(table);
+    }),
 
     deviceStart: guard((arg) => {
       if (!isObject(arg) || !DEVICE_HOSTS.includes(arg.host) || !isDevicePort(arg.port)) return INVALID;

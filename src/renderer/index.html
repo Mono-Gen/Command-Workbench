@@ -179,6 +179,7 @@
         </label>
         <button id="vd-refresh-samples" type="button" data-i18n="dev.samples.refresh"></button>
         <button id="vd-load-file" type="button" data-i18n="dev.definition.loadFile"></button>
+        <button id="vd-make-table" type="button" data-i18n="tbl.open"></button>
       </div>
       <p id="vd-samples-note" class="muted small-text samples-note"></p>
 
@@ -421,6 +422,73 @@
     </form>
   </dialog>
 
+  <dialog id="table-dialog" class="wide" aria-labelledby="table-title">
+    <form method="dialog" id="table-form">
+      <h2 id="table-title" data-i18n="tbl.title"></h2>
+      <p class="muted small-text" data-i18n="tbl.intro"></p>
+      <div class="table-layout">
+        <div class="table-edit">
+          <div class="row">
+            <label class="field grow"><span data-i18n="tbl.name"></span><input id="tbl-name" type="text" maxlength="100" spellcheck="false"></label>
+            <label class="field">
+              <span data-i18n="tbl.transport"></span>
+              <select id="tbl-transport">
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+              </select>
+            </label>
+            <label class="field">
+              <span data-i18n="tbl.terminator"></span>
+              <select id="tbl-terminator">
+                <option value="cr">CR</option>
+                <option value="lf">LF</option>
+                <option value="crlf">CR+LF</option>
+              </select>
+            </label>
+          </div>
+          <label class="field"><span data-i18n="tbl.greeting"></span><input id="tbl-greeting" type="text" class="mono" spellcheck="false"></label>
+          <div class="table-rows" tabindex="0" data-i18n-aria-label="tbl.col.command">
+            <table class="rows">
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="tbl.col.row"></th>
+                  <th scope="col" data-i18n="tbl.col.command"></th>
+                  <th scope="col" data-i18n="tbl.col.reply"></th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody id="tbl-rows"></tbody>
+            </table>
+          </div>
+          <div class="row">
+            <button id="tbl-add-row" type="button" class="small" data-i18n="tbl.addRow"></button>
+          </div>
+          <details class="paste">
+            <summary data-i18n="tbl.paste.summary"></summary>
+            <p class="muted small-text" data-i18n="tbl.paste.help"></p>
+            <textarea id="tbl-paste" class="mono" rows="4" spellcheck="false"></textarea>
+            <div class="row"><button id="tbl-paste-apply" type="button" class="small" data-i18n="tbl.paste.apply"></button></div>
+            <p id="tbl-paste-note" class="muted small-text" role="status"></p>
+          </details>
+          <label class="field"><span data-i18n="tbl.unknown"></span><input id="tbl-unknown" type="text" class="mono" spellcheck="false"></label>
+        </div>
+        <div class="table-result">
+          <h3 data-i18n="tbl.json.title"></h3>
+          <p class="muted small-text" data-i18n="tbl.json.help"></p>
+          <pre id="tbl-json" class="json-preview mono" tabindex="0"></pre>
+          <div id="tbl-errors" class="def-errors" role="alert"></div>
+        </div>
+      </div>
+      <p class="muted small-text" data-i18n="tbl.note"></p>
+      <div class="row buttons end dialog-actions">
+        <span id="tbl-lock" class="muted small-text"></span>
+        <button type="button" id="tbl-close" data-i18n="tbl.close"></button>
+        <button type="button" id="tbl-save" data-i18n="tbl.save"></button>
+        <button type="button" id="tbl-use" class="primary" data-i18n="tbl.use"></button>
+      </div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="i18n/ja.js"></script>
@@ -429,6 +497,7 @@
   <script src="common.js"></script>
   <script src="app.js"></script>
   <script src="device.js"></script>
+  <script src="table.js"></script>
   <script src="relay.js"></script>
   <script src="shell.js"></script>
 </body>
