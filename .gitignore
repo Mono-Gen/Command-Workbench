@@ -1,0 +1,6 @@
+# ビルド成果物と標準の依存
+bin/
+obj/
+dist/
+venv/
+node_modules/

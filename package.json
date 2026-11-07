@@ -1,0 +1,47 @@
+{
+  "name": "command-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Send control commands to a real device over TCP and read the replies, with hints for beginners.",
+  "license": "MIT",
+  "author": "Mono-Gen",
+  "main": "src/main/main.js",
+  "scripts": {
+    "test": "node --test --test-timeout=30000 \"tests/**/*.test.js\"",
+    "start": "node scripts/start.js",
+    "dist": "electron-builder --win portable",
+    "package": "node scripts/package.js"
+  },
+  "build": {
+    "appId": "io.github.mono-gen.command-workbench",
+    "productName": "Command Workbench",
+    "electronLanguages": ["en-US", "ja"],
+    "compression": "maximum",
+    "afterPack": "scripts/after-pack.js",
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "onlyLoadAppFromAsar": true,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon.ico",
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0"
+  }
+}

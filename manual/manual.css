@@ -1,0 +1,97 @@
+/* Shared style of the manual (Japanese and English). No script, no external resource. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #1c2430;
+  --muted: #5b6675;
+  --border: #d5dae1;
+  --accent: #1f5fbf;
+  --code-bg: #eef1f5;
+  --note-bg: #eaf2fd;
+  --note-border: #1f5fbf;
+  --warn-bg: #fff6e0;
+  --warn-border: #b7791f;
+  --danger-bg: #fdecec;
+  --danger-border: #c0392b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181f;
+    --surface: #1b212b;
+    --text: #e4e8ee;
+    --muted: #9aa5b5;
+    --border: #323b49;
+    --accent: #6ea8ff;
+    --code-bg: #262e3a;
+    --note-bg: #182741;
+    --note-border: #6ea8ff;
+    --warn-bg: #3a2f14;
+    --warn-border: #d9a441;
+    --danger-bg: #3d1d1d;
+    --danger-border: #e57373;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.8 "Yu Gothic UI", "Meiryo UI", "Segoe UI", system-ui, sans-serif;
+}
+.page { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 2rem; max-width: 76rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+nav.toc { position: sticky; top: 1rem; align-self: start; max-height: calc(100vh - 2rem); overflow: auto; font-size: 0.9rem; line-height: 1.6; }
+nav.toc p { margin: 0 0 0.5rem; font-weight: 700; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; }
+nav.toc li { margin: 0; }
+nav.toc a { display: block; padding: 0.25rem 0.5rem; border-left: 3px solid transparent; color: var(--muted); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); border-left-color: var(--accent); }
+main { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem 2rem 2.5rem; min-width: 0; }
+h1 { font-size: 1.9rem; line-height: 1.3; margin: 0 0 0.25rem; }
+h2 { font-size: 1.45rem; margin: 3rem 0 0.75rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--border); scroll-margin-top: 1rem; }
+h3 { font-size: 1.15rem; margin: 2rem 0 0.5rem; scroll-margin-top: 1rem; }
+p, ul, ol { margin: 0.7rem 0; }
+li { margin: 0.3rem 0; }
+a { color: var(--accent); }
+.lead { color: var(--muted); margin: 0 0 1rem; }
+.lang-switch { float: right; font-size: 0.9rem; }
+code, kbd, .mono { font-family: "Cascadia Mono", Consolas, "Courier New", monospace; font-size: 0.92em; }
+code { background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 0.8rem 1rem; border-radius: 6px; overflow: auto; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+.ui { font-weight: 700; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.95rem; }
+th, td { border: 1px solid var(--border); padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); }
+.table-wrap { overflow-x: auto; }
+figure { margin: 1.2rem 0; }
+figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 6px; }
+figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
+.callout { margin: 1.2rem 0; padding: 0.7rem 1rem; border-left: 5px solid var(--note-border); background: var(--note-bg); border-radius: 0 6px 6px 0; }
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child { margin-bottom: 0; }
+.callout.warn { border-left-color: var(--warn-border); background: var(--warn-bg); }
+.callout.danger { border-left-color: var(--danger-border); background: var(--danger-bg); }
+.callout .label { font-weight: 700; }
+.steps { counter-reset: step; list-style: none; padding: 0; }
+.steps > li { counter-increment: step; position: relative; padding-left: 2.6rem; margin: 1rem 0; }
+.steps > li::before { content: counter(step); position: absolute; left: 0; top: 0.15rem; width: 1.8rem; height: 1.8rem; border-radius: 50%; background: var(--accent); color: var(--surface); font-weight: 700; text-align: center; line-height: 1.8rem; }
+dl.glossary dt { font-weight: 700; margin-top: 1rem; }
+dl.glossary dd { margin: 0.2rem 0 0 1rem; }
+details { margin: 0.8rem 0; border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 1rem; }
+details summary { cursor: pointer; font-weight: 700; padding: 0.3rem 0; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.footer { color: var(--muted); font-size: 0.9rem; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+@media (max-width: 52rem) {
+  .page { grid-template-columns: minmax(0, 1fr); }
+  nav.toc { position: static; max-height: none; }
+  main { padding: 1rem 1.1rem 2rem; }
+}
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .page { display: block; padding: 0; }
+  nav.toc, .lang-switch { display: none; }
+  main { border: 0; padding: 0; }
+  h2 { break-after: avoid; }
+  figure, .callout, table { break-inside: avoid; }
+}

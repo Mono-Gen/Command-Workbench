@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Command Workbench Manual</title>
+  <link rel="stylesheet" href="manual.css">
+</head>
+<body>
+<div class="page">
+
+<nav class="toc" aria-label="Contents">
+  <p>Contents</p>
+  <ol>
+    <li><a href="#intro">1. Introduction</a></li>
+    <li><a href="#quickstart">2. The first five minutes</a></li>
+    <li><a href="#screen">3. Reading the screen</a></li>
+    <li><a href="#notation">4. Writing commands</a></li>
+    <li><a href="#controller">5. Controller</a></li>
+    <li><a href="#device">6. Device</a></li>
+    <li><a href="#relay">7. Relay</a></li>
+    <li><a href="#udp">8. Using UDP</a></li>
+    <li><a href="#definition">9. Writing a definition</a></li>
+    <li><a href="#trouble">10. When something goes wrong</a></li>
+    <li><a href="#safety">11. Using it safely</a></li>
+    <li><a href="#glossary">12. Glossary</a></li>
+  </ol>
+</nav>
+
+<main>
+<p class="lang-switch"><a href="manual_JP.html" lang="ja">日本語</a></p>
+<h1>Command Workbench Manual</h1>
+<p class="lead">How to use the tool for sending control commands to a device and reading its replies.</p>
+
+<!-- ============ 1 ============ -->
+<h2 id="intro">1. Introduction</h2>
+
+<h3>What this tool does</h3>
+<p>Many audio-visual, lighting and similar devices can be controlled over the network (LAN) by sending them text or numeric "commands". For example, sending <code>PWR 1[CR]</code> may switch a device on. Command Workbench is a Windows program that sends such commands to a device and lets you read what the device sends back.</p>
+<p>Device manuals describe commands in their own notation (<code>[CR]</code>, <code>&lt;CR&gt;&lt;LF&gt;</code>, <code>0x0D</code>, and so on). Turning that notation into the bytes that are really sent, and finding out why a device does not answer, are the two places where newcomers most often get stuck. This tool helps with both:</p>
+<ul>
+  <li>You type a command the way the manual writes it, and see <strong>the exact bytes</strong> before anything is sent.</li>
+  <li>What is sent and received is shown side by side in hexadecimal and as text. The characters that mean a line ending (CR and LF) are marked with colour and a symbol.</li>
+  <li>When there is no reply, or something else goes wrong, it suggests <strong>what to check next</strong>.</li>
+</ul>
+
+<h3>The three roles (tabs)</h3>
+<p>There are three tabs at the top. Each is a separate role, and they can all be used at the same time in one program.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Tab</th><th>What it does</th><th>When to use it</th></tr></thead>
+  <tbody>
+    <tr><td class="ui">Controller (sender)</td><td>Sends commands to a device and reads the replies.</td><td>Operating or investigating a real device.</td></tr>
+    <tr><td class="ui">Device (virtual device)</td><td>Pretends to be a device and answers as a "definition file" says.</td><td>Practising without a real device. Checking how the controlling side behaves.</td></tr>
+    <tr><td class="ui">Relay (record traffic)</td><td>Sits between a controller and a real device, passes everything through unchanged, and records it.</td><td>Seeing what another program and a device say to each other. Making a draft of a virtual device from a recording.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>What it cannot do</h3>
+<ul>
+  <li>It does not reproduce any particular manufacturer's or model's device. A virtual device does only what its definition says. <strong>It is not a guarantee of how a real device behaves.</strong></li>
+  <li>Devices that need a login or a challenge-response handshake are not supported yet.</li>
+  <li>The supported transports are TCP and UDP. Serial (RS-232C) and USB are not supported.</li>
+  <li>Broadcast and multicast (one send that reaches many devices) and IPv6 are not supported.</li>
+</ul>
+
+<h3>Starting the program</h3>
+<p>Extract the downloaded ZIP to a folder you can write to (the desktop or Documents, for example) and run <code>Command Workbench-0.1.0-portable.exe</code>. There is no installer.</p>
+<ul>
+  <li>The first start can take a few seconds.</li>
+  <li>The program is not code-signed, so Windows or your antivirus software may show a warning. Check where you downloaded it from, then decide whether to run it.</li>
+  <li>The files the program saves are created in <strong>the same folder as the program</strong>. To remove everything, delete that folder.</li>
+</ul>
+
+<!-- ============ 2 ============ -->
+<h2 id="quickstart">2. The first five minutes</h2>
+<p>Try everything once without a real device, inside your own computer. You will set up a virtual device (the Device tab) and connect to it from the Controller tab. <strong>Nothing leaves your computer.</strong> There is no device to break.</p>
+
+<ol class="steps">
+  <li>
+    <p><strong>Prepare a virtual device on the Device tab.</strong> Open the "Device (virtual device)" tab and choose <span class="ui">Sample matrix switch</span> from the <span class="ui">Definition</span> list (it loads as soon as you choose it). Leave <span class="ui">Listen on</span> at <span class="ui">127.0.0.1 (this PC only)</span> and the port at <code>0</code>.</p>
+    <figure>
+      <img src="images/en-02-device-loaded.png" alt="The Device tab with the definition Sample matrix switch loaded; the definition's description and its list of commands are on the left" width="1180" height="760">
+      <figcaption>The definition is chosen. On the left is the list of commands this virtual device understands (VER?, PWR? and so on).</figcaption>
+    </figure>
+  </li>
+  <li>
+    <p>Press <span class="ui">Start</span>. The badge at the top right reads <span class="ui">Listening 127.0.0.1:<em>number</em></span>. <strong>Remember this port number</strong>; it changes every time you start.</p>
+  </li>
+  <li>
+    <p><strong>Connect to it from the Controller tab.</strong> Open the "Controller (sender)" tab, enter <code>127.0.0.1</code> as the <span class="ui">Target</span> and the port number you noted as the <span class="ui">Port</span>, and press <span class="ui">Connect</span>. The badge turns to <span class="ui">Connected</span>, and the device's greeting <code>SAMPLE MATRIX READY</code> appears in <span class="ui">Traffic</span>.</p>
+  </li>
+  <li>
+    <p><strong>Send a command.</strong> Type <code>VER?[CR]</code> in the input box. Under it, <span class="ui">Bytes to send</span> shows what will really be sent (<code>56 45 52 3F 0D</code>). Check that <code>[CR]</code> became <code>0D</code> (a control character that acts as a line ending), then press <span class="ui">Send</span> (or Enter).</p>
+    <figure>
+      <img src="images/en-03-controller-compose.png" alt="The Controller tab with PWR?[CR] typed in the input box and the bytes to send shown below it in hexadecimal and as text" width="1180" height="760">
+      <figcaption>As you type, "Bytes to send" shows the result before anything is sent. <code>[CR]</code> has become <code>0D</code>.</figcaption>
+    </figure>
+  </li>
+  <li>
+    <p>Now send these in order. After each one, look at the reply (or at the fact that there is none).</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Send</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr><td><code>PWR?[CR]</code></td><td>The reply is <code>PWR standby</code>.</td></tr>
+        <tr><td><code>OUT1 3[CR]</code></td><td>The power is not on, so the reply is <code>ERR 10</code> (not accepted right now).</td></tr>
+        <tr><td><code>PWR 1[CR]</code></td><td>Switches the power on. <strong>Nothing is replied when it succeeds</strong>; that is a quirk of this virtual device (real devices often do the same). Instead the device announces <code>EVT PWR on</code> by itself (a notification).</td></tr>
+        <tr><td><code>OUT1 3[CR]</code></td><td>This time it succeeds, again silently. Check with <code>OUT1?[CR]</code>; the reply is <code>OUT1 3</code>.</td></tr>
+        <tr><td><code>OUT1 9[CR]</code></td><td>Out of range (only 1 to 4 are valid), so the reply is <code>ERR 1</code>.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <figure>
+      <img src="images/en-04-controller-log.png" alt="The Traffic panel of the Controller tab: the commands that were sent and the device's replies such as ERR 1, each with a time" width="1180" height="760">
+      <figcaption>The Traffic panel. Blue is sent, green is received. The symbol at the end of a reply stands for CR.</figcaption>
+    </figure>
+  </li>
+  <li>
+    <p><strong>Look at the device side too.</strong> Back on the Device tab you see the commands it accepted, what it replied, and its state (in the <span class="ui">State (variables)</span> table, <code>power</code> is <code>on</code> and <code>out1</code> is <code>3</code>).</p>
+    <figure>
+      <img src="images/en-05-device-running.png" alt="The Device tab: received commands and replies in the middle; the state table and the fault injection controls on the right" width="1180" height="760">
+      <figcaption>The Device tab. The right column holds the device's state and the controls that cause problems on purpose (<span class="ui">Fault injection</span>).</figcaption>
+    </figure>
+  </li>
+  <li>
+    <p><strong>Break it on purpose.</strong> Under <span class="ui">Fault injection</span> tick <span class="ui">Stop responding (mute)</span>, then send <code>PWR?[CR]</code> again from the Controller tab. No reply comes. If <span class="ui">Expect a reply</span> is ticked, after about three seconds <span class="ui">Diagnostic hints</span> on the right shows "No reply" and what to check. This is what it looks like when a real device goes quiet. Untick the box when you have seen it.</p>
+  </li>
+</ol>
+
+<p>That is the basic flow: type, check the bytes, send, read the reply. To use a real device, change only the target in step 3 to the device's IP address and port. But <strong>on a real device, a command that changes a setting really changes it</strong>; read <a href="#safety">"11. Using it safely"</a> first.</p>
+
+<!-- ============ 3 ============ -->
+<h2 id="screen">3. Reading the screen</h2>
+
+<h3>Tabs and language</h3>
+<p>The tabs at the top switch between Controller, Device and Relay. <span class="ui">Language</span> at the top right switches between 日本語 and English. Changing it does not affect connections or anything that is running.</p>
+
+<h3>The Controller screen</h3>
+<figure>
+  <img src="images/en-01-controller-start.png" alt="The Controller tab just after start: connection fields at the top, the command input below them, and three panels (Devices, Traffic, Diagnostic hints) at the bottom" width="1180" height="760">
+  <figcaption>The Controller tab right after start. Nothing is connected yet.</figcaption>
+</figure>
+<ol>
+  <li><strong>The connection bar (top).</strong> Enter the transport (TCP / UDP), the target and the port, then press <span class="ui">Connect</span> or <span class="ui">Disconnect</span>. The badge on the right shows the current state with both colour and a symbol. The <span class="ui">Read-only</span> box is a safety switch for real devices (<a href="#safety">chapter 11</a>).</li>
+  <li><strong>The command input (below it).</strong> The input format, the terminator added automatically, the input box, <span class="ui">Send</span> and <span class="ui">Save as command</span>. <span class="ui">Bytes to send</span> under the box is what will really be sent.</li>
+  <li><strong>The left column.</strong> <span class="ui">Devices</span> (saved targets) and the <span class="ui">Commands</span> saved for each device.</li>
+  <li><strong>The middle panel, <span class="ui">Traffic</span>.</strong> What you sent (blue) and what you received (green), with times. The upper row is hexadecimal and the lower row is text; control characters such as CR and LF are shown in coloured boxes.</li>
+  <li><strong>The right column, <span class="ui">Diagnostic hints</span>.</strong> Things to check when something is not working. <span class="ui">Repeat sending</span> settings are below it.</li>
+</ol>
+
+<h3>State symbols</h3>
+<p>State is shown by symbol and text as well as colour (for example ○ idle, ● running, another symbol for an error), so it can be read even if colours are hard to tell apart.</p>
+
+<!-- ============ 4 ============ -->
+<h2 id="notation">4. Writing commands</h2>
+<p>You can type a command the way the device manual writes it. What it turns into is always shown under the input box.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>You type</th><th>Bytes sent</th></tr></thead>
+  <tbody>
+    <tr><td><code>[CR]</code> <code>&lt;CR&gt;</code> <code>\r</code></td><td><code>0D</code></td></tr>
+    <tr><td><code>[LF]</code> <code>&lt;LF&gt;</code> <code>\n</code></td><td><code>0A</code></td></tr>
+    <tr><td><code>[CRLF]</code> <code>&lt;CR&gt;&lt;LF&gt;</code></td><td><code>0D 0A</code></td></tr>
+    <tr><td><code>[NUL]</code> <code>[STX]</code> <code>[ETX]</code> <code>[ACK]</code> <code>[NAK]</code> <code>[ESC]</code> <code>[SP]</code> <code>[TAB]</code> and so on</td><td>The control character of that name (upper or lower case)</td></tr>
+    <tr><td><code>0x0D</code> <code>\x0D</code></td><td>One byte in hexadecimal (exactly two digits)</td></tr>
+    <tr><td><code>\\</code> <code>\[</code> <code>\&lt;</code></td><td>The character itself (<code>\</code> <code>[</code> <code>&lt;</code>)</td></tr>
+    <tr><td>anything else</td><td>Sent as text (UTF-8)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Input format</h3>
+<ul>
+  <li><strong>ASCII</strong> (default): the notation in the table works. Characters outside ASCII, such as Japanese, are sent as UTF-8 bytes. For a device that expects Shift_JIS or another encoding, give the bytes directly in HEX.</li>
+  <li><strong>HEX</strong>: type raw bytes, such as <code>47 45 54 50 57 52 0D</code>.</li>
+</ul>
+<p>When you write several hexadecimal values in a row, <strong>separate them with spaces</strong>, as in <code>0x0D 0x0A</code>. <code>0x0D0x0A</code> is deliberately an error, to prevent misreading.</p>
+
+<h3>Terminators (the mark that ends a command)</h3>
+<p>Many devices use CR or LF as a mark meaning "the command ends here". This is called a <strong>terminator</strong>. Without it, a device keeps waiting for the rest and may never reply.</p>
+<ul>
+  <li>Write <code>[CR]</code> in the input box yourself, or choose CR, LF or CR+LF under <span class="ui">Terminator added automatically</span>.</li>
+  <li>If your input already ends with a terminator and you also chose an automatic one, the terminator would be sent twice, so a warning appears.</li>
+  <li>If the notation cannot be read, the program does not guess; it shows where and why.</li>
+</ul>
+
+<!-- ============ 5 ============ -->
+<h2 id="controller">5. Controller</h2>
+<p>The Controller sends commands to a device and reads the replies. It works with a real device and with a virtual one (the Device tab).</p>
+
+<h3>Saving a device</h3>
+<p>Press <span class="ui">Add</span> under <span class="ui">Devices</span> on the left, enter a name, the target (IP address or host name), the port and the transport, and save. After that, choosing the device from the list fills in the connection fields. Use <span class="ui">Edit</span> and <span class="ui">Delete</span> to change it later. Find the IP address and port in the device's manual or its settings screen.</p>
+
+<h3>Sending</h3>
+<ol>
+  <li>Press <span class="ui">Connect</span>.</li>
+  <li>Type a command and check <span class="ui">Bytes to send</span>.</li>
+  <li>Press <span class="ui">Send</span> (or Enter). <strong>It is sent immediately.</strong> There is no confirmation screen, so make a habit of checking the bytes before you press it.</li>
+</ol>
+<p>When <span class="ui">Expect a reply</span> is ticked and no reply comes within about three seconds, a hint appears. Untick it when you send to a device that stays silent on success.</p>
+
+<h3>Saving commands for reuse</h3>
+<p>Press <span class="ui">Save as command</span>, give it a name and choose a <strong>kind</strong>. Saved commands appear under <span class="ui">Commands</span> on the left and can be sent with one press of <span class="ui">Send</span>. Commands are saved per device.</p>
+<ul>
+  <li><strong>Query</strong>: a read that does <em>not</em> change the device's state (for example <code>PWR?</code>).</li>
+  <li><strong>Set</strong>: a command that <em>may</em> change the device's state (for example <code>PWR 1</code>). If unsure, choose <strong>Set</strong>.</li>
+</ul>
+<p>The kind is used by the safety features (read-only mode, <a href="#safety">chapter 11</a>). They are saved in <code>workbench-commands.json</code> in the same folder as the program.</p>
+
+<h3>Repeat sending (keeping a connection alive)</h3>
+<p>Some devices close the connection when no command arrives for a while. <span class="ui">Repeat sending</span> helps prevent that by sending <strong>only a query command</strong> at a fixed interval. Press <span class="ui">Repeat</span> on a saved command, set the interval (seconds) in the right column and press <span class="ui">Start</span>. It cannot be started while Read-only is on, and it stops when the connection ends.</p>
+<p>Separately, there is a <span class="ui">TCP keepalive</span> box. That is the operating system checking that the other side has not disappeared; a device does not necessarily count it as activity.</p>
+
+<h3>Diagnostic hints</h3>
+<p>When you cannot connect, get no reply, or are disconnected, <span class="ui">Diagnostic hints</span> on the right shows "what to check next". A hint is a <strong>possible</strong> cause, not a conclusion.</p>
+<figure>
+  <img src="images/en-06-hint-refused.png" alt="The Controller tab after a refused connection: Diagnostic hints shows that the connection was refused and that the device may still be starting up" width="1180" height="760">
+  <figcaption>An example of connecting to a port nobody listens on. A fact (the connection was refused) comes first; items marked "Possible" are guesses.</figcaption>
+</figure>
+
+<!-- ============ 6 ============ -->
+<h2 id="device">6. Device</h2>
+<p>This runs a <strong>virtual device</strong> that answers as a definition file says, instead of a real device. Use it to:</p>
+<ul>
+  <li>practise sending commands and reading replies without a real device;</li>
+  <li>see how the controlling side copes with quirks real devices have (silence on success, errors that depend on state, a connection dropped after a while, and so on);</li>
+  <li>check a control program you wrote yourself.</li>
+</ul>
+
+<h3>How to use it</h3>
+<ol>
+  <li>Choose from the <span class="ui">Definition</span> list. The bundled samples are listed. <span class="ui">Choose a file…</span> loads a definition from anywhere else.</li>
+  <li>Choose <span class="ui">Listen on</span> and the <span class="ui">Port</span>, then press <span class="ui">Start</span>. Port <code>0</code> means "pick a free number automatically". Enter a number if you need a fixed one.</li>
+  <li>From the connecting side (the Controller tab or another program), connect to the displayed <code>address:port</code>.</li>
+</ol>
+
+<h3>What is on the screen</h3>
+<ul>
+  <li><strong>Left: the definition.</strong> The loaded definition's name, description, settings (connection limit, idle disconnect and so on) and the list of commands it understands. The samples' descriptions are in English.</li>
+  <li><strong>Middle: Device traffic.</strong> The commands it received and what it sent back, each marked with how it was handled (for example <span class="ui">matched</span>).</li>
+  <li><strong>Right: state and controls.</strong> A table of the device's state (variables), the list of connected peers and <span class="ui">Fault injection</span>.</li>
+</ul>
+
+<h3>Fault injection</h3>
+<p>While the device is running you can cause, on purpose, problems that real devices have. It is for practising how the controlling side copes.</p>
+<ul>
+  <li><span class="ui">Drop the next replies</span> makes replies disappear.</li>
+  <li><span class="ui">Delay replies (ms)</span> adds the given delay to every reply.</li>
+  <li><span class="ui">Stop responding (mute)</span> keeps accepting commands but replies to none.</li>
+  <li><span class="ui">Close all connections now</span> disconnects from the device side.</li>
+</ul>
+
+<h3>Real-device quirks</h3>
+<p>A definition can reproduce real-device quirks: a limit on simultaneous connections, closing a connection when no command arrives for a while (TCP keepalive does not prevent it), going silent, no answer just after start-up, and ignoring commands that come too fast. Which ones apply is written in the definition file (<a href="#definition">chapter 9</a>).</p>
+
+<div class="callout warn">
+  <p><span class="label">Take care when listening on the whole network</span></p>
+  <p>If you set <span class="ui">Listen on</span> to <span class="ui">0.0.0.0 (the whole network)</span>, other devices on the same network can connect too. A confirmation appears, and a warning stays visible while it runs. Use it only on a network you trust, and leave it at <span class="ui">127.0.0.1 (this PC only)</span> unless you need otherwise. The first time, the Windows firewall may ask for permission.</p>
+</div>
+
+<h3>Your own definitions</h3>
+<p>Put a definition file (<code>.json</code>) in the <code>samples</code> folder next to the program and press <span class="ui">Reload list</span>; it appears in the list. Opening a sample also shows how to write one. If there is no <code>samples</code> folder, the samples built into the program are used (and the screen says so).</p>
+
+<!-- ============ 7 ============ -->
+<h2 id="relay">7. Relay</h2>
+<p>The Relay <strong>sits between</strong> a controller (or another control program) and a real device, passes the traffic through unchanged, and records all of it.</p>
+<p>Use it when you want to:</p>
+<ul>
+  <li>see <strong>what a manufacturer's own program and a device actually say to each other</strong> (to find behaviour the manual does not describe);</li>
+  <li>make a <strong>draft definition of a virtual device</strong> from a recording, so you can practise later without the real device.</li>
+</ul>
+
+<h3>How it works</h3>
+<p>Normally you connect "control program → device". With the Relay it becomes "control program → <strong>Relay</strong> → device", and the Relay hands the bytes of both directions on in the same order and unchanged. To use it, you only change what the control program connects to, from the device to the Relay.</p>
+
+<h3>How to use it</h3>
+<ol>
+  <li>Open the "Relay (record traffic)" tab.</li>
+  <li>Enter the real device in <span class="ui">Target (real device) address</span> and <span class="ui">Target port</span>. Only a device on your own network (a private address) or this PC is accepted.</li>
+  <li>Choose <span class="ui">Listen on</span> and the <span class="ui">Port</span>, then press <span class="ui">Start</span>. A message tells you to point the controller at the Relay's address and port.</li>
+  <li>Change what your controller (or other control program) connects to, to that address and port, and use it as usual.</li>
+  <li>The traffic in both directions appears in the <span class="ui">Traffic log</span>. The <span class="ui">Recording</span> panel on the left shows how many items and connections were recorded.</li>
+</ol>
+<figure>
+  <img src="images/en-07-relay.png" alt="The Relay tab: target and listening settings at the top, two notice bars, and three panels below (Recording, Traffic log, draft)" width="1180" height="760">
+  <figcaption>The Relay. The traffic log marks the direction: controller→device and device→controller.</figcaption>
+</figure>
+
+<h3>Saving and loading a recording</h3>
+<p><span class="ui">Save…</span> in the <span class="ui">Recording</span> panel writes the recording to a place you choose, and <span class="ui">Load…</span> opens one later. <span class="ui">Clear</span> empties the recording on screen.</p>
+<div class="callout danger">
+  <p><span class="label">A recording may contain passwords and settings exactly as they were sent.</span> You choose where it is saved. Check the contents of a saved file before sharing it with anyone. The program never saves or sends a recording by itself.</p>
+</div>
+
+<h3>Making a draft definition from a recording</h3>
+<p>Press <span class="ui">Make a draft from this recording</span> on the right to get a draft definition of a virtual device, based on the recording.</p>
+<figure>
+  <img src="images/en-08-relay-draft.png" alt="The right panel of the Relay tab, showing the drafted commands, how reliable the draft is, and the things to check" width="1180" height="760">
+  <figcaption>A draft. Under "Things to check" are the points the recording alone could not settle, each with examples.</figcaption>
+</figure>
+<ul>
+  <li>The draft contains <strong>only what the recording makes certain</strong>. Whatever could not be decided is left out and listed under "Things to check", with the reason.</li>
+  <li><span class="ui">Try it as a virtual device</span> loads it into the Device tab (stop a running virtual device first). <span class="ui">Save as definition…</span> writes an editable JSON file.</li>
+  <li>A device's "state" (is it powered on, for example) is <strong>never guessed</strong> from a recording. A command whose reply depends on state does not go into the draft; add the variables yourself.</li>
+</ul>
+<p>A draft is a starting point. It is <strong>not a guarantee</strong> that it behaves like the real device. For how drafts are made and what each "Things to check" item means, see <a href="../docs/relay-and-draft.md">Recording traffic with the Relay, and drafting a definition</a>.</p>
+
+<h3>What the Relay promises, and what it does not</h3>
+<ul>
+  <li><strong>Promised:</strong> the bytes in each direction arrive in the same order and unchanged.</li>
+  <li><strong>Not promised:</strong> where TCP splits or joins the data, and exact timing. A recording shows what the Relay saw, which can differ from what the two ends saw. The Relay opens its own connection to the device, so settings such as TCP keepalive are not carried over.</li>
+</ul>
+
+<!-- ============ 8 ============ -->
+<h2 id="udp">8. Using UDP</h2>
+<p>All three tabs handle <strong>UDP</strong> as well as TCP. First, the differences:</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th></th><th>TCP</th><th>UDP</th></tr></thead>
+  <tbody>
+    <tr><td>Connection</td><td>Yes (it can be refused, closed or time out)</td><td><strong>None.</strong> "Connect" only prepares sending; it cannot tell whether a device is there.</td></tr>
+    <tr><td>Message boundaries</td><td>A stream of bytes, split by terminators</td><td><strong>One send (a datagram) is one message</strong></td></tr>
+    <tr><td>Delivery</td><td>The OS checks and resends</td><td>No guarantee. Datagrams can be lost, duplicated or reordered</td></tr>
+    <tr><td>Where replies come from</td><td>The same connection</td><td>Some devices reply from another port, or to a fixed port</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="callout">
+  <p>UDP gives no feedback on delivery. When nothing comes back, the program cannot tell "lost", "wrong port", "dropped by a firewall" and "the device does not answer" apart. So the hints are <strong>a list of possible causes</strong>, not a conclusion.</p>
+</div>
+
+<h3>UDP in the Controller</h3>
+<ol>
+  <li>Set <span class="ui">Transport</span> to <span class="ui">UDP</span>, enter the target and port, and press <span class="ui">Connect</span>. The badge reads "UDP ready (delivery not confirmed)". That is all it means.</li>
+  <li>Type a command and press <span class="ui">Send</span>. One send is one datagram.</li>
+</ol>
+<figure>
+  <img src="images/en-09-controller-udp.png" alt="The Controller tab with UDP selected, showing Local port and Accept replies from any source; the traffic shows LEVEL 7 sent and OK and EVT LEVEL=7 received" width="1180" height="760">
+  <figcaption>The Controller using UDP (the other side is the bundled Sample UDP unit). Choosing UDP shows <span class="ui">Local port</span> and <span class="ui">Accept replies from any source</span>.</figcaption>
+</figure>
+<ul>
+  <li><strong>Local port:</strong> set it when the device always sends its replies to a fixed port. Empty or <code>0</code> picks one automatically.</li>
+  <li><strong>Accept replies from any source:</strong> by default only replies from the address you sent to are accepted. Tick this if the device answers from another port.</li>
+  <li>Broadcast and multicast targets are refused. UDP can reach only your own network (private addresses) or this PC.</li>
+</ul>
+
+<h3>UDP in the Device and the Relay</h3>
+<ul>
+  <li><strong>Device:</strong> a definition with <code>"transport": "udp"</code> becomes a UDP device. The bundled <span class="ui">Sample UDP unit</span> is an example. Several peers (sources) can talk to it at once, and the device's state is shared by all of them.</li>
+  <li><strong>Relay:</strong> choose <span class="ui">UDP</span> as the transport. Each peer gets its own path, so replies go back to the right peer. A draft definition cannot yet be made from a UDP recording.</li>
+</ul>
+<p>When listening on the whole network, the sender address of a UDP datagram can be forged, so the program limits how much it sends to keep others from being drawn in. <strong>Because of that limit, a large reply (over 8 KiB in the Relay) may not get through.</strong> See <a href="../docs/udp.md">Using UDP</a> for details.</p>
+
+<!-- ============ 9 ============ -->
+<h2 id="definition">9. Writing a definition</h2>
+<p>A virtual device's behaviour is written in a small JSON file, the definition. <strong>It is not a programming language.</strong> There are no expressions or scripts, only:</p>
+<ul>
+  <li><strong>Variables</strong> — the device's state (power, the selected input, and so on).</li>
+  <li><strong>Commands</strong> — what each input is answered with, and how it changes the state.</li>
+  <li><strong>Notifications</strong> — things the device says by itself (when its state changes, for example).</li>
+  <li><strong>Connection quirks</strong> — a connection limit, idle disconnect, silence just after start-up, and so on.</li>
+</ul>
+<p>A minimal example (a device whose power can be queried and switched):</p>
+<pre><code>{
+  "schemaVersion": 1,
+  "name": "My first device",
+  "framing": { "terminator": "cr" },
+  "greeting": "HELLO[CR]",
+  "variables": {
+    "power": { "type": "enum", "values": ["standby", "on"], "initial": "standby" }
+  },
+  "commands": [
+    { "pattern": "PWR ?", "reply": "PWR {var.power}[CR]" },
+    {
+      "pattern": "PWR {state}",
+      "capture": { "state": { "map": { "0": "standby", "1": "on" } } },
+      "do": { "set": { "power": "{capture.state}" } },
+      "reply": null,
+      "invalid": { "reply": "ERR 1[CR]" }
+    }
+  ],
+  "unknown": { "reply": "ERR 2[CR]" }
+}</code></pre>
+<p>This order works well:</p>
+<ol>
+  <li>Duplicate a bundled definition from the <code>samples</code> folder (for example <code>matrix-switch.json</code>) and rename it.</li>
+  <li>With the device's manual at hand, add commands and rewrite the replies.</li>
+  <li>Save it in the <code>samples</code> folder and press <span class="ui">Reload list</span>. If it breaks a rule, every problem is shown <strong>with its position</strong> when it is loaded.</li>
+</ol>
+<p>The items, variable types, conditions, notifications and connection quirks are all listed in <a href="../docs/device-definition.md">Writing a virtual device definition</a>.</p>
+
+<!-- ============ 10 ============ -->
+<h2 id="trouble">10. When something goes wrong</h2>
+<p>Find your symptom below. Also look at <span class="ui">Diagnostic hints</span> on the right first; it may already describe it.</p>
+
+<details>
+  <summary>Cannot connect (refused, not found, timed out)</summary>
+  <ul>
+    <li>Check that the IP address and port match the device's manual or settings screen.</li>
+    <li>Check that the computer and the device are on the same network (same switch, same IP address range). Check the cable and power too.</li>
+    <li>Some devices take ten seconds or more after power-on before they can communicate.</li>
+    <li>Some devices accept UDP only, not TCP. Try UDP as the transport.</li>
+    <li>Some devices have reached their limit of simultaneous connections because another computer or program is still connected (some allow only one).</li>
+    <li>When connecting to a virtual device, check that the Device tab is <span class="ui">Listening</span> and that the port number matches (starting with <code>0</code> gives a different number each time).</li>
+  </ul>
+</details>
+
+<details>
+  <summary>It connects, but nothing comes back</summary>
+  <ul>
+    <li>Check in <span class="ui">Bytes to send</span> that the terminator (such as <code>[CR]</code>) is there. Devices differ in whether CR, LF or CR+LF ends a command.</li>
+    <li>Some devices <strong>reply nothing when a setting succeeds</strong> and reply only on failure. Read the state back with a query command to see whether it changed.</li>
+    <li>Check the spelling of the command and any device ID or channel against the manual.</li>
+    <li>The device may have gone quiet. <span class="ui">Disconnect</span> and connect again.</li>
+  </ul>
+</details>
+
+<details>
+  <summary>The device disconnects after a while</summary>
+  <p>Some devices close the connection when no command arrives for a while. Check the manual for what counts as activity (TCP keepalive may not count). Sending a query command with <span class="ui">Repeat sending</span> can prevent it.</p>
+</details>
+
+<details>
+  <summary>"Send" is disabled or blocked</summary>
+  <p>With <span class="ui">Read-only</span> ticked, only saved "query" commands can be sent. Set commands and raw input are blocked. This is meant to protect a real device. Unticking it asks for confirmation.</p>
+</details>
+
+<details>
+  <summary>I cannot save a command as a "query"</summary>
+  <p>A command longer than 256 bytes cannot be saved as a query, because the confirmation screen could not show all of it. Save it as a "set" command.</p>
+</details>
+
+<details>
+  <summary>No reply over UDP</summary>
+  <ul>
+    <li>Check the port, the cable and the firewall. UDP gives no error when data does not arrive.</li>
+    <li>If the manual says the device replies to a fixed port, enter that number as the <span class="ui">Local port</span>.</li>
+    <li>If the device answers from a port other than the one you sent to, tick <span class="ui">Accept replies from any source</span>.</li>
+    <li>A command over about 1472 bytes may be dropped by the network. Shorten it.</li>
+    <li>If it says the local port cannot be used, another program is using that port. Choose another number or leave it empty.</li>
+  </ul>
+</details>
+
+<details>
+  <summary>Slow start, or a warning at start-up</summary>
+  <p>A single-file program unpacks itself on every start, so the first start can take a few seconds. Because the program is not code-signed, Windows or your antivirus software may show a warning.</p>
+</details>
+
+<details>
+  <summary>Saving fails, or the saved file is said to be broken</summary>
+  <p>Commands are saved in <code>workbench-commands.json</code> in the same folder as the program. If the program is in a folder you cannot write to (a read-only place, for example), saving fails; move it to a folder you can write to. If the file cannot be read (damaged, a newer format, too large), the program <strong>does not overwrite it</strong>. Rename the file to keep a copy, then restart the program.</p>
+</details>
+
+<details>
+  <summary>A firewall prompt appeared</summary>
+  <p>When the Device or the Relay listens on <span class="ui">0.0.0.0 (the whole network)</span>, Windows may ask for permission. If you are only experimenting on this PC, choose <span class="ui">127.0.0.1 (this PC only)</span>; the prompt normally does not appear.</p>
+</details>
+
+<!-- ============ 11 ============ -->
+<h2 id="safety">11. Using it safely</h2>
+
+<div class="callout danger">
+  <p><span class="label">On a real device, a command that changes a setting really changes it.</span> Switching power, changing a video route or changing a volume affects the site at once. Always check <span class="ui">Bytes to send</span> before you press <span class="ui">Send</span>.</p>
+</div>
+
+<h3>There is no confirmation on send</h3>
+<p>Pressing <span class="ui">Send</span> is the confirmation. <strong>Set commands and typed input are sent as soon as you press it, just like queries.</strong> Check the bytes shown under the input box first.</p>
+
+<h3>Keep queries and sets apart</h3>
+<ul>
+  <li>When you save a command, mark as a <strong>query</strong> only what does not change the state. If unsure, mark it <strong>set</strong>.</li>
+  <li>When you save something as a "query", the program's own dialog lists the exact bytes. Check them, then approve. Changing the contents of a saved query asks again.</li>
+</ul>
+
+<h3>Read-only mode</h3>
+<p>When you connect a real device just to <strong>look</strong>, tick <span class="ui">Read-only</span>. Then only saved queries can be sent; set commands and typed input are blocked. Unticking it also asks for confirmation.</p>
+
+<h3>Listening on the whole network</h3>
+<ul>
+  <li>The Device and the Relay listen on <strong>this PC only</strong> (127.0.0.1) by default.</li>
+  <li>If you choose <span class="ui">0.0.0.0 (the whole network)</span>, other devices on the network can connect without any authentication. A confirmation appears and a warning stays visible. Use it only on a network you trust.</li>
+  <li>The sender address of UDP can be forged, so listening on the whole network could be used to send replies to a third party. The program limits how much it sends to reduce the effect, but cannot remove it.</li>
+</ul>
+
+<h3>Where it can send</h3>
+<ul>
+  <li>The <strong>TCP Controller</strong> connects to whatever address you type, because it cannot know where your device is on the network. Make sure the address you type is correct.</li>
+  <li>The <strong>UDP Controller</strong> and the <strong>Relay</strong> reach only your own network (private addresses) or this PC.</li>
+</ul>
+
+<h3>Handling recordings</h3>
+<p>A Relay recording may contain passwords. You choose where it is saved; check the contents before sharing it. The program sends a recording nowhere.</p>
+
+<h3>Text on screen is not trusted</h3>
+<p>Text received from a device and the contents of a definition file you load are only displayed; they never drive what the program does. The confirmation dialogs described above are shown by the program itself, not by the screen content. If you find a security problem, report it as described in SECURITY.md (linked from the <a href="../README.md">README</a>).</p>
+
+<!-- ============ 12 ============ -->
+<h2 id="glossary">12. Glossary</h2>
+<dl class="glossary">
+  <dt>IP address</dt>
+  <dd>The address of a device on a network, written as four numbers separated by dots, such as <code>10.0.0.5</code>. It is in the device's manual or settings screen.</dd>
+  <dt>Port (port number)</dt>
+  <dd>The number of a "door" on a device (1 to 65535). The same IP address with a different port is a different peer.</dd>
+  <dt>127.0.0.1</dt>
+  <dd>A special address meaning "this PC itself" (loopback). It never reaches the network. Use it for practice and checks.</dd>
+  <dt>Private address</dt>
+  <dd>An address used only inside a home or company network (<code>10.…</code>, <code>172.16.…</code> to <code>172.31.…</code>, <code>192.168.…</code> and so on). It is not used on the internet.</dd>
+  <dt>TCP</dt>
+  <dd>A way of exchanging data after first making a "connection". It checks that data arrived and resends what is missing. Most device control uses it.</dd>
+  <dt>UDP</dt>
+  <dd>A way of sending separate chunks of data (datagrams) without making a connection. Delivery is not guaranteed.</dd>
+  <dt>Datagram</dt>
+  <dd>The chunk of data sent in one UDP send. In this tool, one datagram is one command or one reply.</dd>
+  <dt>Terminator</dt>
+  <dd>The character that marks the end of a command: CR, LF or both (CR+LF). Each device has its own.</dd>
+  <dt>CR / LF</dt>
+  <dd>Control characters meaning a line ending. CR (carriage return) is <code>0D</code> in hexadecimal and LF (line feed) is <code>0A</code>. The screen shows them as coloured symbols.</dd>
+  <dt>Hexadecimal (HEX)</dt>
+  <dd>A way of writing numbers with 0–9 and A–F. One byte is two digits (<code>00</code> to <code>FF</code>). It is used to look at what is sent and received.</dd>
+  <dt>Byte</dt>
+  <dd>The smallest unit of data in communication. One letter or digit is one byte.</dd>
+  <dt>Query / Set</dt>
+  <dd>The kinds of command in this tool. A query reads without changing the device's state; a set command may change it.</dd>
+  <dt>Definition file</dt>
+  <dd>A small JSON file that describes how a virtual device behaves. How to write one is in <a href="../docs/device-definition.md">a separate guide</a>.</dd>
+  <dt>TCP keepalive</dt>
+  <dd>A mechanism by which the OS periodically checks that the other side has not disappeared. A device does not necessarily count it as activity.</dd>
+  <dt>Firewall</dt>
+  <dd>Something that allows or blocks communication. Windows has one built in. It may ask for permission when a program starts listening.</dd>
+  <dt>Relay (proxy)</dt>
+  <dd>Something that sits between two parties and passes their traffic on. The Relay in this tool records the traffic while it does so.</dd>
+</dl>
+
+<p class="footer">Manual for Command Workbench 0.1.0. This program does not guarantee the behaviour of any particular manufacturer's or model's device. For the license, see the bundled LICENSE.</p>
+</main>
+</div>
+</body>
+</html>

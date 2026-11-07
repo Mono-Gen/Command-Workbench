@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "transport": "udp",
+  "name": "Sample UDP unit",
+  "description": "A fictional unit that talks over UDP: one datagram is one message, and each answer goes back to the sender. Several controllers can talk to it at once (up to 4; datagrams from a fifth are ignored), a controller that stays silent for 30 seconds is forgotten, a change of the level is announced to every controller that spoke recently, and commands that come faster than 50 ms apart are ignored. Lines end with CR (one trailing CR in a datagram is optional).",
+  "framing": { "terminator": "cr" },
+  "connection": {
+    "maxConnections": 4,
+    "idleTimeoutMs": 30000,
+    "minCommandIntervalMs": 50
+  },
+  "variables": {
+    "level": { "type": "int", "min": 0, "max": 10, "initial": 5 },
+    "mute": { "type": "enum", "values": ["off", "on"], "initial": "off" }
+  },
+  "commands": [
+    { "pattern": "ID?", "reply": "UNIT 1.0[CR]" },
+    { "pattern": "LEVEL?", "reply": "LEVEL={var.level}[CR]" },
+    {
+      "pattern": "LEVEL {n}",
+      "do": { "set": { "level": "{capture.n}" } },
+      "reply": "OK[CR]",
+      "invalid": { "reply": "RANGE 0-10[CR]" }
+    },
+    { "pattern": "MUTE?", "reply": "MUTE={var.mute}[CR]" },
+    {
+      "pattern": "MUTE {state}",
+      "capture": { "state": { "map": { "0": "off", "1": "on" } } },
+      "do": { "set": { "mute": "{capture.state}" } },
+      "reply": "OK[CR]",
+      "invalid": { "reply": "ERR 1[CR]" }
+    }
+  ],
+  "notifications": [
+    { "when": { "var": "level", "changes": true }, "send": "EVT LEVEL={var.level}[CR]", "to": "all" }
+  ],
+  "unknown": { "reply": "ERR 2[CR]" }
+}

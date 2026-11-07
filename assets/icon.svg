@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- App icon: a send arrow (blue) and a receive arrow (green) on a dark rounded square. -->
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#14181f"/>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="none" stroke="#2c3646" stroke-width="4"/>
+  <!-- send: points right -->
+  <path d="M44 84 H146 V52 L212 94 L146 136 V104 H44 Z" fill="#6aa3ff"/>
+  <!-- receive: points left -->
+  <path d="M212 152 H110 V120 L44 162 L110 204 V172 H212 Z" fill="#4cc27c"/>
+</svg>

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Command Workbench</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="tabs" role="tablist" data-i18n-aria-label="tabs.group">
+    <button id="tab-controller" type="button" role="tab" aria-selected="true" aria-controls="view-controller" data-i18n="tabs.controller"></button>
+    <button id="tab-device" type="button" role="tab" aria-selected="false" aria-controls="view-device" data-i18n="tabs.device"></button>
+    <button id="tab-relay" type="button" role="tab" aria-selected="false" aria-controls="view-relay" data-i18n="tabs.relay"></button>
+    <label class="field inline lang">
+      <span data-i18n="lang.label"></span>
+      <select id="locale">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+  </nav>
+
+  <div id="view-controller" class="view" role="tabpanel" aria-labelledby="tab-controller">
+  <header class="topbar">
+    <div class="brand">
+      <h1 data-i18n="app.name">Command Workbench</h1>
+      <p data-i18n="app.subtitle" class="muted"></p>
+    </div>
+
+    <div class="connection" role="group" data-i18n-aria-label="conn.group">
+      <label class="field narrow" data-i18n-title="conn.udpNote">
+        <span data-i18n="conn.transport"></span>
+        <select id="transport">
+          <option value="tcp">TCP</option>
+          <option value="udp">UDP</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="conn.host"></span>
+        <input id="host" type="text" autocomplete="off" spellcheck="false" inputmode="url">
+      </label>
+      <label class="field narrow">
+        <span data-i18n="conn.port"></span>
+        <input id="port" type="number" min="1" max="65535" inputmode="numeric">
+      </label>
+      <label class="field narrow udp-only" data-i18n-title="conn.localPort.help" hidden>
+        <span data-i18n="conn.localPort"></span>
+        <input id="local-port" type="number" min="0" max="65535" placeholder="0" inputmode="numeric" title="0 / 1024-65535">
+      </label>
+      <button id="connect" type="button" class="primary" data-i18n="conn.connect"></button>
+      <button id="disconnect" type="button" data-i18n="conn.disconnect"></button>
+      <span id="status" class="badge state-idle" role="status" aria-live="polite">
+        <span id="status-icon" aria-hidden="true">○</span>
+        <span id="status-text"></span>
+      </span>
+    </div>
+
+    <div class="options">
+      <label class="check" data-i18n-title="conn.keepalive.help">
+        <input id="keepalive" type="checkbox">
+        <span data-i18n="conn.keepalive"></span>
+      </label>
+      <label class="check udp-only" data-i18n-title="conn.acceptAny.help" hidden>
+        <input id="accept-any" type="checkbox">
+        <span data-i18n="conn.acceptAny"></span>
+      </label>
+      <label class="check" data-i18n-title="conn.readonly.help">
+        <input id="readonly" type="checkbox">
+        <span data-i18n="conn.readonly"></span>
+      </label>
+    </div>
+  </header>
+
+  <div id="banners" class="banners" aria-live="polite"></div>
+
+  <footer class="composer">
+    <div class="row composer-options">
+      <label class="field inline">
+        <span data-i18n="composer.mode"></span>
+        <select id="mode">
+          <option value="text" data-i18n="composer.mode.text"></option>
+          <option value="hex" data-i18n="composer.mode.hex"></option>
+        </select>
+      </label>
+      <label class="field inline">
+        <span data-i18n="composer.terminator"></span>
+        <select id="terminator">
+          <option value="none" data-i18n="composer.terminator.none"></option>
+          <option value="cr" data-i18n="composer.terminator.cr"></option>
+          <option value="lf" data-i18n="composer.terminator.lf"></option>
+          <option value="crlf" data-i18n="composer.terminator.crlf"></option>
+        </select>
+      </label>
+      <label class="check">
+        <input id="expects-reply" type="checkbox" checked>
+        <span data-i18n="composer.expectsReply"></span>
+      </label>
+      <details class="notation">
+        <summary data-i18n="composer.help.title"></summary>
+        <p data-i18n="composer.help.body"></p>
+      </details>
+    </div>
+
+    <div class="row input-row">
+      <input id="input" type="text" class="mono" autocomplete="off" spellcheck="false" data-i18n-aria-label="composer.mode">
+      <button id="send" type="button" class="primary" data-i18n="composer.send"></button>
+      <button id="save-command" type="button" data-i18n="composer.save"></button>
+    </div>
+
+    <p class="muted small-text send-note" data-i18n="composer.sendNote"></p>
+
+    <div class="preview">
+      <h3 data-i18n="composer.preview"></h3>
+      <div id="preview" class="mono"></div>
+      <ul id="compose-messages" class="messages" role="alert"></ul>
+    </div>
+  </footer>
+
+  <main class="workspace">
+    <aside class="panel" aria-labelledby="devices-title">
+      <h2 id="devices-title" data-i18n="devices.title"></h2>
+      <div class="row">
+        <select id="device-select" data-i18n-aria-label="devices.select"></select>
+      </div>
+      <div class="row buttons">
+        <button id="device-add" type="button" data-i18n="devices.add"></button>
+        <button id="device-edit" type="button" data-i18n="devices.edit"></button>
+        <button id="device-delete" type="button" data-i18n="devices.delete"></button>
+      </div>
+      <p id="devices-none" class="muted" data-i18n="devices.none" hidden></p>
+
+      <h2 data-i18n="commands.title"></h2>
+      <p id="commands-empty" class="muted" data-i18n="commands.empty" hidden></p>
+      <ul id="command-list" class="command-list"></ul>
+    </aside>
+
+    <section class="panel log-panel" aria-labelledby="log-title">
+      <div class="panel-head">
+        <h2 id="log-title" data-i18n="log.title"></h2>
+        <button id="log-clear" type="button" class="small" data-i18n="log.clear"></button>
+      </div>
+      <p id="log-truncated" class="muted" hidden></p>
+      <div id="log" class="log" role="log" tabindex="0" data-i18n-aria-label="log.region"></div>
+      <p id="log-empty" class="muted empty" data-i18n="log.empty"></p>
+    </section>
+
+    <aside class="panel" aria-labelledby="hints-title">
+      <h2 id="hints-title" data-i18n="hints.title"></h2>
+      <p class="muted small-text" data-i18n="hints.note"></p>
+      <div id="hints" class="hints"></div>
+      <p id="hints-empty" class="muted" data-i18n="hints.empty"></p>
+
+      <h2 data-i18n="periodic.title"></h2>
+      <p class="muted small-text" data-i18n="periodic.help"></p>
+      <label class="field">
+        <span data-i18n="periodic.interval"></span>
+        <input id="periodic-seconds" type="number" min="1" max="3600" value="30" inputmode="numeric">
+      </label>
+      <p id="periodic-status" class="muted" data-i18n="periodic.pick"></p>
+      <button id="periodic-stop" type="button" data-i18n="periodic.stop" hidden></button>
+    </aside>
+  </main>
+  <footer id="statusbar" class="statusbar muted small-text"></footer>
+
+  </div>
+
+  <section id="view-device" class="view device" role="tabpanel" aria-labelledby="tab-device" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <h1 data-i18n="dev.title"></h1>
+        <p class="muted" data-i18n="dev.subtitle"></p>
+      </div>
+
+      <div class="connection" role="group" data-i18n-aria-label="dev.definition.title">
+        <label class="field">
+          <span data-i18n="dev.definition.sample"></span>
+          <select id="vd-sample"></select>
+        </label>
+        <button id="vd-refresh-samples" type="button" data-i18n="dev.samples.refresh"></button>
+        <button id="vd-load-file" type="button" data-i18n="dev.definition.loadFile"></button>
+      </div>
+      <p id="vd-samples-note" class="muted small-text samples-note"></p>
+
+      <div class="connection" role="group">
+        <label class="field">
+          <span data-i18n="dev.listen.label"></span>
+          <select id="vd-host">
+            <option value="127.0.0.1" data-i18n="dev.listen.local"></option>
+            <option value="0.0.0.0" data-i18n="dev.listen.all"></option>
+          </select>
+        </label>
+        <label class="field narrow" data-i18n-title="dev.port.help">
+          <span data-i18n="dev.port.label"></span>
+          <input id="vd-port" type="number" min="0" max="65535" value="0" inputmode="numeric">
+        </label>
+        <button id="vd-start" type="button" class="primary" data-i18n="dev.start"></button>
+        <button id="vd-stop" type="button" data-i18n="dev.stop"></button>
+        <span id="vd-status" class="badge state-idle" role="status" aria-live="polite">
+          <span id="vd-status-icon" aria-hidden="true">○</span>
+          <span id="vd-status-text"></span>
+        </span>
+      </div>
+    </header>
+
+    <div id="vd-banners" class="banners" aria-live="polite"></div>
+
+    <main class="workspace">
+      <aside class="panel" aria-labelledby="vd-def-title">
+        <h2 id="vd-def-title" data-i18n="dev.definition.title"></h2>
+        <div id="vd-def-errors" class="def-errors" role="alert"></div>
+        <p id="vd-def-none" class="muted" data-i18n="dev.definition.none"></p>
+        <div id="vd-def-info" class="def-info" hidden></div>
+      </aside>
+
+      <section class="panel log-panel" aria-labelledby="vd-log-title">
+        <div class="panel-head">
+          <h2 id="vd-log-title" data-i18n="dev.log.title"></h2>
+          <button id="vd-log-clear" type="button" class="small" data-i18n="log.clear"></button>
+        </div>
+        <p id="vd-log-truncated" class="muted" hidden></p>
+        <div id="vd-log" class="log" role="log" tabindex="0" data-i18n-aria-label="log.region"></div>
+        <p id="vd-log-empty" class="muted empty" data-i18n="dev.log.empty"></p>
+      </section>
+
+      <aside class="panel" aria-labelledby="vd-state-title">
+        <h2 id="vd-state-title" data-i18n="dev.vars.title"></h2>
+        <table class="vars"><tbody id="vd-vars"></tbody></table>
+        <p id="vd-vars-none" class="muted" data-i18n="dev.vars.none" hidden></p>
+
+        <h2 data-i18n="dev.conns.title"></h2>
+        <div id="vd-conns" class="conns"></div>
+        <p id="vd-conns-empty" class="muted"></p>
+
+        <h2 data-i18n="dev.faults.title"></h2>
+        <p class="muted small-text" data-i18n="dev.faults.help"></p>
+        <div class="row">
+          <label class="field"><span data-i18n="dev.faults.drop"></span><input id="vd-drop-n" type="number" min="0" max="1000" value="1" inputmode="numeric"></label>
+          <button id="vd-drop-apply" type="button" data-i18n="dev.faults.dropApply"></button>
+        </div>
+        <div class="row">
+          <label class="field"><span data-i18n="dev.faults.delay"></span><input id="vd-delay-ms" type="number" min="0" max="60000" value="0" inputmode="numeric"></label>
+          <button id="vd-delay-apply" type="button" data-i18n="dev.faults.delayApply"></button>
+        </div>
+        <label class="check"><input id="vd-mute" type="checkbox"> <span data-i18n="dev.faults.mute"></span></label>
+        <div class="row"><button id="vd-close-all" type="button" data-i18n="dev.faults.closeAll"></button></div>
+        <p id="vd-fault-state" class="muted small-text"></p>
+      </aside>
+    </main>
+  </section>
+
+  <section id="view-relay" class="view device" role="tabpanel" aria-labelledby="tab-relay" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <h1 data-i18n="relay.title"></h1>
+        <p class="muted" data-i18n="relay.subtitle"></p>
+      </div>
+
+      <div class="connection" role="group" data-i18n-aria-label="relay.target.label">
+        <label class="field" data-i18n-title="relay.target.help">
+          <span data-i18n="relay.target.label"></span>
+          <input id="rl-up-host" type="text" maxlength="253" spellcheck="false" autocomplete="off">
+        </label>
+        <label class="field narrow">
+          <span data-i18n="relay.target.port"></span>
+          <input id="rl-up-port" type="number" min="1" max="65535" inputmode="numeric">
+        </label>
+        <label class="field narrow">
+          <span data-i18n="relay.transport.label"></span>
+          <select id="rl-transport">
+            <option value="tcp" data-i18n="relay.transport.tcp"></option>
+            <option value="udp" data-i18n="relay.transport.udp"></option>
+          </select>
+        </label>
+      </div>
+
+      <div class="connection" role="group">
+        <label class="field">
+          <span data-i18n="dev.listen.label"></span>
+          <select id="rl-host">
+            <option value="127.0.0.1" data-i18n="dev.listen.local"></option>
+            <option value="0.0.0.0" data-i18n="dev.listen.all"></option>
+          </select>
+        </label>
+        <label class="field narrow" data-i18n-title="dev.port.help">
+          <span data-i18n="dev.port.label"></span>
+          <input id="rl-port" type="number" min="0" max="65535" value="0" inputmode="numeric">
+        </label>
+        <button id="rl-start" type="button" class="primary" data-i18n="dev.start"></button>
+        <button id="rl-stop" type="button" data-i18n="dev.stop"></button>
+        <span id="rl-status" class="badge state-idle" role="status" aria-live="polite">
+          <span id="rl-status-icon" aria-hidden="true">○</span>
+          <span id="rl-status-text"></span>
+        </span>
+      </div>
+    </header>
+
+    <div id="rl-banners" class="banners" aria-live="polite"></div>
+
+    <main class="workspace">
+      <aside class="panel" aria-labelledby="rl-rec-title">
+        <h2 id="rl-rec-title" data-i18n="relay.rec.title"></h2>
+        <p id="rl-rec-stats" class="info-line"></p>
+        <p id="rl-rec-truncated" class="error" hidden></p>
+        <p id="rl-rec-loaded" class="muted small-text" hidden></p>
+        <div id="rl-rec-errors" class="def-errors" role="alert"></div>
+        <div class="row">
+          <button id="rl-save" type="button" data-i18n="relay.rec.save"></button>
+          <button id="rl-load" type="button" data-i18n="relay.rec.load"></button>
+          <button id="rl-clear" type="button" data-i18n="relay.rec.clear"></button>
+        </div>
+
+        <h2 data-i18n="relay.conns.title"></h2>
+        <div id="rl-conns" class="conns"></div>
+        <p id="rl-conns-empty" class="muted" data-i18n="relay.conns.empty"></p>
+      </aside>
+
+      <section class="panel log-panel" aria-labelledby="rl-log-title">
+        <div class="panel-head">
+          <h2 id="rl-log-title" data-i18n="relay.log.title"></h2>
+          <button id="rl-log-clear" type="button" class="small" data-i18n="log.clear"></button>
+        </div>
+        <p id="rl-log-truncated" class="muted" hidden></p>
+        <div id="rl-log" class="log" role="log" tabindex="0" data-i18n-aria-label="log.region"></div>
+        <p id="rl-log-empty" class="muted empty" data-i18n="relay.log.empty"></p>
+      </section>
+
+      <aside class="panel" aria-labelledby="rl-draft-title">
+        <h2 id="rl-draft-title" data-i18n="relay.draft.title"></h2>
+        <p class="muted small-text" data-i18n="relay.draft.help"></p>
+        <label class="field">
+          <span data-i18n="relay.draft.source"></span>
+          <select id="rl-source">
+            <option value="live" data-i18n="relay.draft.source.live"></option>
+            <option value="loaded" data-i18n="relay.draft.source.loaded"></option>
+          </select>
+        </label>
+        <label class="field">
+          <span data-i18n="relay.draft.terminator"></span>
+          <select id="rl-term">
+            <option value="auto" data-i18n="relay.draft.terminator.auto"></option>
+            <option value="cr" data-i18n="dev.terminator.cr"></option>
+            <option value="lf" data-i18n="dev.terminator.lf"></option>
+            <option value="crlf" data-i18n="dev.terminator.crlf"></option>
+          </select>
+        </label>
+        <label class="field" data-i18n-title="relay.draft.quiet.help">
+          <span data-i18n="relay.draft.quiet"></span>
+          <input id="rl-quiet" type="number" min="0" max="60000" placeholder="250" inputmode="numeric">
+        </label>
+        <div class="row"><button id="rl-draft-make" type="button" class="primary" data-i18n="relay.draft.make"></button></div>
+
+        <p id="rl-draft-none" class="muted" data-i18n="relay.hw.no_variables"></p>
+        <div id="rl-draft-result" class="def-info" hidden></div>
+        <div class="row">
+          <button id="rl-draft-save" type="button" data-i18n="relay.draft.save"></button>
+          <button id="rl-draft-use" type="button" data-i18n="relay.draft.use"></button>
+        </div>
+      </aside>
+    </main>
+  </section>
+
+  <dialog id="device-dialog" aria-labelledby="device-dialog-title">
+    <form method="dialog" id="device-form">
+      <h2 id="device-dialog-title" data-i18n="devices.dialogTitle"></h2>
+      <label class="field"><span data-i18n="devices.name"></span><input id="device-name" type="text" required maxlength="100"></label>
+      <label class="field"><span data-i18n="devices.host"></span><input id="device-host" type="text" required maxlength="253" spellcheck="false"></label>
+      <label class="field"><span data-i18n="devices.port"></span><input id="device-port" type="number" required min="1" max="65535"></label>
+      <label class="field">
+        <span data-i18n="conn.transport"></span>
+        <select id="device-transport">
+          <option value="tcp">TCP</option>
+          <option value="udp">UDP</option>
+        </select>
+      </label>
+      <label class="field device-udp" data-i18n-title="conn.localPort.help" hidden><span data-i18n="conn.localPort"></span><input id="device-local-port" type="number" min="0" max="65535" placeholder="0" inputmode="numeric"></label>
+      <label class="check device-udp" data-i18n-title="conn.acceptAny.help" hidden><input id="device-accept-any" type="checkbox"> <span data-i18n="conn.acceptAny"></span></label>
+      <p id="device-error" class="error" role="alert"></p>
+      <div class="row buttons end">
+        <button value="cancel" type="button" id="device-cancel" data-i18n="commands.cancel"></button>
+        <button value="ok" type="submit" class="primary" data-i18n="commands.save"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="command-dialog" aria-labelledby="command-dialog-title">
+    <form method="dialog" id="command-form">
+      <h2 id="command-dialog-title" data-i18n="commands.dialogTitle"></h2>
+      <label class="field"><span data-i18n="commands.name"></span><input id="command-name" type="text" required maxlength="100"></label>
+      <label class="field"><span data-i18n="composer.preview"></span><input id="command-text" type="text" class="mono" required spellcheck="false"></label>
+      <div class="row">
+        <label class="field inline">
+          <span data-i18n="composer.mode"></span>
+          <select id="command-mode">
+            <option value="text" data-i18n="composer.mode.text"></option>
+            <option value="hex" data-i18n="composer.mode.hex"></option>
+          </select>
+        </label>
+        <label class="field inline">
+          <span data-i18n="composer.terminator"></span>
+          <select id="command-terminator">
+            <option value="none" data-i18n="composer.terminator.none"></option>
+            <option value="cr" data-i18n="composer.terminator.cr"></option>
+            <option value="lf" data-i18n="composer.terminator.lf"></option>
+            <option value="crlf" data-i18n="composer.terminator.crlf"></option>
+          </select>
+        </label>
+      </div>
+      <fieldset>
+        <legend data-i18n="commands.kind"></legend>
+        <label class="check"><input type="radio" name="command-kind" value="set" checked> <span data-i18n="commands.kind.set"></span></label>
+        <label class="check"><input type="radio" name="command-kind" value="query"> <span data-i18n="commands.kind.query"></span></label>
+        <p class="muted small-text" data-i18n="commands.kind.help"></p>
+      </fieldset>
+      <label class="check"><input id="command-expects-reply" type="checkbox" checked> <span data-i18n="composer.expectsReply"></span></label>
+      <p id="command-error" class="error" role="alert"></p>
+      <div class="row buttons end">
+        <button type="button" id="command-cancel" data-i18n="commands.cancel"></button>
+        <button type="submit" class="primary" data-i18n="commands.save"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="i18n/ja.js"></script>
+  <script src="i18n/en.js"></script>
+  <script src="logic.js"></script>
+  <script src="common.js"></script>
+  <script src="app.js"></script>
+  <script src="device.js"></script>
+  <script src="relay.js"></script>
+  <script src="shell.js"></script>
+</body>
+</html>

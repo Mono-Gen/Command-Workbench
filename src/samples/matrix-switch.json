@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "name": "Sample matrix switch",
+  "description": "A fictional 4-output video matrix. Turn the power on first; then route an input (1-4) to each output. A successful setting is silent. Errors answer ERR n. Idle connections are closed after 60 seconds.",
+  "framing": { "terminator": "cr" },
+  "greeting": "SAMPLE MATRIX READY[CR]",
+  "connection": {
+    "maxConnections": 2,
+    "overLimit": "refuse",
+    "idleTimeoutMs": 60000,
+    "idleBehavior": "close"
+  },
+  "variables": {
+    "power": { "type": "enum", "values": ["standby", "on"], "initial": "standby" },
+    "out1": { "type": "int", "min": 1, "max": 4, "initial": 1 },
+    "out2": { "type": "int", "min": 1, "max": 4, "initial": 2 },
+    "out3": { "type": "int", "min": 1, "max": 4, "initial": 3 },
+    "out4": { "type": "int", "min": 1, "max": 4, "initial": 4 }
+  },
+  "commands": [
+    { "pattern": "VER?", "reply": "VER 1.0[CR]" },
+    { "pattern": "PWR?", "reply": "PWR {var.power}[CR]" },
+    {
+      "pattern": "PWR {state}",
+      "capture": { "state": { "map": { "0": "standby", "1": "on" } } },
+      "do": { "set": { "power": "{capture.state}" } },
+      "reply": null,
+      "invalid": { "reply": "ERR 1[CR]" }
+    },
+    { "pattern": "OUT1?", "reply": "OUT1 {var.out1}[CR]" },
+    { "pattern": "OUT2?", "reply": "OUT2 {var.out2}[CR]" },
+    { "pattern": "OUT3?", "reply": "OUT3 {var.out3}[CR]" },
+    { "pattern": "OUT4?", "reply": "OUT4 {var.out4}[CR]" },
+    {
+      "pattern": "OUT1 {src}",
+      "when": [{ "var": "power", "is": "on" }],
+      "do": { "set": { "out1": "{capture.src}" } },
+      "reply": null,
+      "otherwise": { "reply": "ERR 10[CR]" },
+      "invalid": { "reply": "ERR 1[CR]" }
+    },
+    {
+      "pattern": "OUT2 {src}",
+      "when": [{ "var": "power", "is": "on" }],
+      "do": { "set": { "out2": "{capture.src}" } },
+      "reply": null,
+      "otherwise": { "reply": "ERR 10[CR]" },
+      "invalid": { "reply": "ERR 1[CR]" }
+    },
+    {
+      "pattern": "OUT3 {src}",
+      "when": [{ "var": "power", "is": "on" }],
+      "do": { "set": { "out3": "{capture.src}" } },
+      "reply": null,
+      "otherwise": { "reply": "ERR 10[CR]" },
+      "invalid": { "reply": "ERR 1[CR]" }
+    },
+    {
+      "pattern": "OUT4 {src}",
+      "when": [{ "var": "power", "is": "on" }],
+      "do": { "set": { "out4": "{capture.src}" } },
+      "reply": null,
+      "otherwise": { "reply": "ERR 10[CR]" },
+      "invalid": { "reply": "ERR 1[CR]" }
+    },
+    {
+      "pattern": "STATUS?",
+      "reply": [
+        "PWR {var.power}[CR]",
+        "OUT {var.out1} {var.out2} {var.out3} {var.out4}[CR]"
+      ]
+    }
+  ],
+  "notifications": [
+    { "when": { "var": "power", "changes": true }, "send": "EVT PWR {var.power}[CR]" }
+  ],
+  "unknown": { "reply": "ERR 2[CR]" }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "name": "Sample quirky player",
+  "description": "A fictional media player that behaves like some real equipment: it ignores connections for the first 3 seconds after starting, accepts one controller at a time (a second one is greeted and then disconnected), ignores commands that come faster than 100 ms apart, answers some commands slowly, says nothing to commands it does not know, and stops answering after 20 seconds without a command. Lines end with CR+LF.",
+  "framing": { "terminator": "crlf" },
+  "greeting": "PLAYER 2.1[CR][LF]",
+  "connection": {
+    "maxConnections": 1,
+    "overLimit": "accept_then_close",
+    "idleTimeoutMs": 20000,
+    "idleBehavior": "stop_responding",
+    "startupQuietMs": 3000,
+    "minCommandIntervalMs": 100
+  },
+  "variables": {
+    "transport": { "type": "enum", "values": ["stopped", "playing", "paused"], "initial": "stopped" },
+    "track": { "type": "int", "min": 1, "max": 99, "initial": 1 }
+  },
+  "commands": [
+    { "pattern": "STATE?", "reply": "STATE {var.transport} TRACK {var.track}[CR][LF]" },
+    {
+      "pattern": "PLAY",
+      "when": [{ "var": "transport", "in": ["stopped", "paused"] }],
+      "do": { "set": { "transport": "playing" } },
+      "delayMs": 300,
+      "reply": "OK[CR][LF]",
+      "otherwise": { "reply": "BUSY[CR][LF]" }
+    },
+    {
+      "pattern": "PAUSE",
+      "when": [{ "var": "transport", "is": "playing" }],
+      "do": { "set": { "transport": "paused" } },
+      "reply": null,
+      "otherwise": { "reply": "NOT PLAYING[CR][LF]" }
+    },
+    {
+      "pattern": "STOP",
+      "do": { "set": { "transport": "stopped" } },
+      "reply": null
+    },
+    {
+      "pattern": "TRACK {n}",
+      "do": { "set": { "track": "{capture.n}" } },
+      "reply": null,
+      "invalid": { "reply": "RANGE 1-99[CR][LF]" }
+    }
+  ],
+  "notifications": [
+    { "when": { "var": "transport", "changes": true }, "send": "EVT {var.transport}[CR][LF]" }
+  ]
+}
