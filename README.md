@@ -46,7 +46,7 @@ To use a real device, enter its IP address and port instead. Read "Staying safe 
 ## What it can do
 
 - **Manual notation in, exact bytes out.** Type `GETPWR[CR]` and see `47 45 54 50 57 52 0D` before anything is sent.
-- **A table instead of JSON for a first virtual device.** Copy the command table from a manual (or paste it), and the program writes the definition for you and shows the JSON beside it.
+- **A table instead of JSON for a first virtual device.** Copy the command table from a manual (or paste it), and the program writes the definition for you and shows the JSON beside it. The same table can also be added to the controller's saved commands, so you type it only once.
 - **Hex and text side by side.** CR and LF are colored and drawn with symbols so they cannot hide.
 - **Diagnostic hints.** When there is no reply, the connection is refused, or the device closes the connection, the app suggests what to check next. Hints are possible causes, not conclusions.
 - **Saved commands per device.** Connection keep-alive options: TCP keepalive, and sending a saved command at a fixed interval.

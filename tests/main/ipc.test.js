@@ -9,7 +9,7 @@ function fakeService() {
   const calls = [];
   const record = (name) => (...args) => { calls.push([name, ...args]); return { ok: true, from: name }; };
   const service = {};
-  for (const name of ['init', 'getState', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive', 'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic']) {
+  for (const name of ['init', 'getState', 'saveData', 'importTable', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive', 'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic']) {
     service[name] = record(name);
   }
   return { service, calls };
@@ -20,7 +20,7 @@ const INVALID = { ok: false, code: 'invalid_arguments' };
 test('exposes exactly the documented channels', () => {
   assert.deepEqual([...CHANNELS].sort(), [
     'connect', 'deviceCloseAll', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceSetFault', 'deviceStart',
-    'deviceState', 'deviceStop', 'deviceTablePreview', 'deviceTableSave', 'deviceTableUse', 'disconnect', 'init', 'parsePreview',
+    'deviceState', 'deviceStop', 'deviceTablePreview', 'deviceTableSave', 'deviceTableUse', 'disconnect', 'importTable', 'init', 'parsePreview',
     'relayClearRecording', 'relayDraft', 'relayLoadRecording', 'relaySaveDraft', 'relaySaveRecording', 'relayStart',
     'relayState', 'relayStop', 'relayUseDraft',
     'saveData', 'sendDirect', 'sendSaved',
@@ -109,6 +109,50 @@ test('saveData needs a plain object; the service validates the content', async (
   await handlers.saveData({ schemaVersion: 1, devices: [] });
   assert.deepEqual(calls.at(-1), ['saveData', { schemaVersion: 1, devices: [] }]);
   for (const bad of [null, undefined, 'x', 5, []]) assert.deepEqual(await handlers.saveData(bad), INVALID);
+});
+
+test('importTable strictly validates both objects and passes rebuilt known fields', async () => {
+  const { service, calls } = fakeService();
+  const handlers = createIpcHandlers({ service, setLocale: () => {} });
+  const table = {
+    name: 'Device', transport: 'tcp', terminator: 'cr', greeting: '', unknownReply: '',
+    rows: [{ command: 'PWR?', reply: 'ON' }],
+  };
+  const withInheritedValues = Object.assign(Object.create({ hidden: true }), table);
+  assert.deepEqual(await handlers.importTable({ table: withInheritedValues, target: { existing: 'Device' } }), INVALID);
+
+  const argument = JSON.parse(JSON.stringify({ table, target: { create: { name: 'New', host: '127.0.0.1', port: 9000 } } }));
+  assert.equal((await handlers.importTable(argument)).ok, true);
+  assert.deepEqual(calls.at(-1), ['importTable', {
+    table: {
+      name: 'Device', transport: 'tcp', terminator: 'cr', greeting: '', unknownReply: '',
+      rows: [{ command: 'PWR?', reply: 'ON' }],
+    },
+    target: { create: { name: 'New', host: '127.0.0.1', port: 9000 } },
+  }]);
+  assert.notEqual(calls.at(-1)[1], argument);
+  assert.notEqual(calls.at(-1)[1].table, argument.table);
+  assert.notEqual(calls.at(-1)[1].target.create, argument.target.create);
+
+  assert.equal((await handlers.importTable({ table, target: { existing: 'Device' } })).ok, true);
+  assert.deepEqual(calls.at(-1), ['importTable', { table, target: { existing: 'Device' } }]);
+  const validCalls = calls.length;
+  for (const bad of [
+    null, [], {}, { table, target: { existing: 'Device' }, extra: true },
+    { table: { ...table, extra: true }, target: { existing: 'Device' } },
+    { table, target: {} }, { table, target: { existing: 'Device', create: { name: 'N', host: 'h', port: 1 } } },
+    { table, target: { existing: '' } }, { table, target: { existing: 1 } }, { table, target: { existing: 'x'.repeat(101) } },
+    { table, target: { create: null } }, { table, target: { create: { name: '', host: 'h', port: 1 } } },
+    { table, target: { create: { name: 'N', host: '', port: 1 } } },
+    { table, target: { create: { name: 'N', host: 'h', port: 0 } } },
+    { table, target: { create: { name: 'N', host: 'h', port: 65536 } } },
+    { table, target: { create: { name: 'N', host: 'h', port: 1.5 } } },
+    { table, target: { create: { name: 'N', host: 'h', port: '1' } } },
+    { table, target: { create: { name: 'N', host: 'h', port: 1, extra: true } } },
+  ]) {
+    assert.deepEqual(await handlers.importTable(bad), INVALID, JSON.stringify(bad));
+  }
+  assert.equal(calls.length, validCalls, 'nothing invalid reached the service');
 });
 
 test('setLocale accepts only "ja" or "en"', async () => {

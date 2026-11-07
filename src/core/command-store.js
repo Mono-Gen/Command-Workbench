@@ -215,4 +215,4 @@ function validateStore(input) {
   return { ok: true, data: { schemaVersion: SCHEMA_VERSION, devices } };
 }
 
-module.exports = { SCHEMA_VERSION, LIMITS, emptyStore, validateStore };
+module.exports = { SCHEMA_VERSION, LIMITS, emptyStore, validateStore, nameKey };

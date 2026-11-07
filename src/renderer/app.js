@@ -576,6 +576,18 @@
     fillTargetFromDevice();
   }
 
+  // What the "make from a table" dialog (table.js) needs from this view: the names of the saved devices,
+  // and a way to show the commands the main process has just saved there.
+  window.WbControllerView = Object.freeze({
+    deviceNames: () => S.data.devices.map((device) => device.name),
+    applyData(data, deviceName) {
+      S.data = data;
+      if (S.data.devices.some((device) => device.name === deviceName)) S.selectedDevice = deviceName;
+      renderAll();
+      fillTargetFromDevice();
+    },
+  });
+
   start().catch((error) => {
     // The page cannot work without the bridge; show why instead of staying blank.
     document.body.textContent = `Failed to start: ${error && error.message}`;

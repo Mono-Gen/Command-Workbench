@@ -4,7 +4,8 @@
 const { parseCommand } = require('../core/parse-command');
 const { formatView, createTextStream } = require('../core/format-view');
 const { diagnose } = require('../core/diagnose');
-const { validateStore } = require('../core/command-store');
+const { validateStore, nameKey } = require('../core/command-store');
+const { buildTableCommands } = require('../core/table-definition');
 const { createPeriodic, MIN_INTERVAL_MS, MAX_INTERVAL_MS } = require('./periodic');
 
 const HINT_TICK_MS = 1000;
@@ -148,7 +149,7 @@ function createService({
 
   // ---- saving the command list --------------------------------------------------------
 
-  async function saveData(next) {
+  async function persistData(next) {
     const validation = validateStore(next);
     if (!validation.ok) {
       return store.save(next); // returns the standard invalid_data result
@@ -161,6 +162,57 @@ function createService({
       return { ok: true, data };
     }
     return result;
+  }
+
+  async function saveData(next) {
+    return persistData(next);
+  }
+
+  async function importTable({ table, target }) {
+    const built = buildTableCommands(table);
+    if (!built.ok) {
+      return { ok: false, code: 'invalid_table', errors: built.errors.slice(0, 50), totalErrors: built.errors.length };
+    }
+
+    let deviceIndex = -1;
+    let destination;
+    let devices = data.devices;
+    if (Object.hasOwn(target, 'existing')) {
+      deviceIndex = data.devices.findIndex((device) => device.name === target.existing);
+      if (deviceIndex === -1) return { ok: false, code: 'unknown_device' };
+      destination = data.devices[deviceIndex];
+    } else {
+      destination = { name: target.create.name, host: target.create.host, port: target.create.port, commands: [] };
+      if (table.transport === 'udp') destination.transport = 'udp';
+    }
+
+    // The store's own rule for "the same name" (case, spaces and Unicode form are ignored): a command
+    // that collides is skipped, never overwritten.
+    const takenNames = new Set(destination.commands.map((existing) => nameKey(existing.name)));
+    const addedCommands = [];
+    const skipped = [];
+    for (const command of built.commands) {
+      const key = nameKey(command.name);
+      if (takenNames.has(key)) {
+        skipped.push(command.name);
+      } else {
+        takenNames.add(key);
+        addedCommands.push(command);
+      }
+    }
+
+    if (addedCommands.length === 0) return { ok: true, data, added: 0, skipped };
+
+    if (deviceIndex === -1) {
+      devices = [...data.devices, { ...destination, commands: addedCommands }];
+    } else {
+      devices = data.devices.map((device, index) => (index === deviceIndex
+        ? { ...device, commands: [...device.commands, ...addedCommands] }
+        : device));
+    }
+    const saved = await persistData({ schemaVersion: data.schemaVersion, devices });
+    if (!saved.ok) return saved;
+    return { ok: true, data: saved.data, added: addedCommands.length, skipped };
   }
 
   // ---- public API (everything the renderer can ask for) --------------------------------
@@ -274,6 +326,7 @@ function createService({
     init,
     getState,
     saveData,
+    importTable,
     parsePreview,
     connect,
     disconnect,

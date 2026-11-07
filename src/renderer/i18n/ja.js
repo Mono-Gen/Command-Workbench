@@ -599,4 +599,20 @@
   'tbl.used': '「{name}」を仮想デバイスに読み込みました。',
   'tbl.saved': '{file} に保存しました。',
   'tbl.runningLocked': '待ち受け中は新しい定義を使えません。先に停止してください。',
+
+  // ---- 表の内容を、制御役のコマンド集にも追加する ----
+  'tbl.import.summary': '制御役のコマンド集にも追加…',
+  'tbl.import.help': '表のコマンドを、制御役の保存コマンドとしても登録します。制御役から送ると、この表の仮想デバイスが、表のとおりに答えます。登録先に同じ名前のコマンドがすでにあるときは、上書きせずに飛ばします。',
+  'tbl.import.target': '登録先の機器',
+  'tbl.import.new': '(新しい機器として登録)',
+  'tbl.import.newName': '機器の名前',
+  'tbl.import.newHost': '宛先(IP またはホスト名)',
+  'tbl.import.newPort': 'ポート',
+  'tbl.import.go': '追加',
+  'tbl.import.needPort': '新しい機器のポートを、1〜65535 で入れてください。仮想デバイスを開始している間は、そのポートが自動で入ります。',
+  'tbl.import.done': '「{device}」のコマンド集に、{added} 件を追加しました。',
+  'tbl.import.none': '追加するコマンドがありませんでした(すべて、同じ名前がすでにあります)。',
+  'tbl.import.skipped': '{count} 件は、同じ名前があるので飛ばしました: {names}',
+  'tbl.err.command_name_too_long': 'コマンドが長すぎて、保存コマンドの名前にできません(100 文字まで)。',
+  'err.unknown_device': 'その機器は見つかりません。制御役の機器の一覧を確認してください。',
 }));

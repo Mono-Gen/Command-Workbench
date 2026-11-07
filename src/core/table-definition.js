@@ -62,42 +62,24 @@ function describeInput(input) {
   return null;
 }
 
-// Errors are { where, code, source, detail? }. `where` is { row: n } or { field: name }.
-// `source` is 'table' for the checks made here and 'definition' for what the validator reported.
-function buildTableDefinition(input) {
-  const invalid = describeInput(input);
-  if (invalid !== null) {
-    return { ok: false, errors: [{ where: { field: invalid === 'not_an_object' ? 'input' : invalid }, code: 'invalid_input', source: 'table' }] };
+function checkReplyCell(text, input, fail, where) {
+  if (CONTROL_CHARACTER.test(text)) {
+    fail(where, 'reply_control_character');
+    return null;
   }
+  if (TRAILING_TERMINATOR.test(text) || endsWithTerminator(text, input.terminator)) {
+    fail(where, 'reply_terminator_included');
+    return null;
+  }
+  const template = escapeReply(text) + TERMINATORS[input.terminator];
+  if (template.length > LIMITS.MAX_REPLY) {
+    fail(where, 'reply_too_long');
+    return null;
+  }
+  return template;
+}
 
-  const errors = [];
-  const fail = (where, code, detail) => errors.push(detail === undefined
-    ? { where, code, source: 'table' }
-    : { where, code, source: 'table', detail });
-
-  const terminator = TERMINATORS[input.terminator];
-  const name = input.name.trim();
-  if (name.length === 0) fail({ field: 'name' }, 'name_required');
-  else if (name.length > LIMITS.MAX_NAME) fail({ field: 'name' }, 'name_too_long');
-
-  // A reply cell: the text of a cell plus the terminator, as the validator will see it.
-  const checkReply = (text, where) => {
-    if (CONTROL_CHARACTER.test(text)) {
-      fail(where, 'reply_control_character');
-      return null;
-    }
-    if (TRAILING_TERMINATOR.test(text) || endsWithTerminator(text, input.terminator)) {
-      fail(where, 'reply_terminator_included');
-      return null;
-    }
-    const template = escapeReply(text) + terminator;
-    if (template.length > LIMITS.MAX_REPLY) {
-      fail(where, 'reply_too_long');
-      return null;
-    }
-    return template;
-  };
-
+function collectTableRows(input, fail, { maxCommandName = null } = {}) {
   // Rows that are blank in both cells are not rows (the empty line at the end of the table).
   const used = [];
   input.rows.forEach((row, index) => {
@@ -106,8 +88,7 @@ function buildTableDefinition(input) {
   if (used.length > LIMITS.MAX_ROWS) fail({ field: 'rows' }, 'too_many_rows');
   else if (used.length === 0) fail({ field: 'rows' }, 'no_rows');
 
-  const commands = [];
-  const origin = []; // origin[commandIndex] = table row index, to point validator errors back at a row
+  const rows = [];
   const firstSeen = new Map();
   for (const { row, index } of used.slice(0, LIMITS.MAX_ROWS)) {
     const where = { row: index };
@@ -122,6 +103,9 @@ function buildTableDefinition(input) {
     } else if (TRAILING_TERMINATOR.test(command)) {
       fail(where, 'command_terminator_included');
       ok = false;
+    } else if (maxCommandName !== null && command.length > maxCommandName) {
+      fail(where, 'command_name_too_long');
+      ok = false;
     } else if (escapePattern(command).length > LIMITS.MAX_PATTERN) {
       fail(where, 'command_too_long');
       ok = false;
@@ -132,26 +116,78 @@ function buildTableDefinition(input) {
     } else {
       firstSeen.set(command, index);
     }
+
     // An empty reply is a deliberate silence, not a missing value.
     let reply = null;
     if (row.reply.length > 0) {
-      reply = checkReply(row.reply, where);
+      reply = checkReplyCell(row.reply, input, fail, where);
       if (reply === null) ok = false;
     }
-    if (ok) {
-      commands.push({ pattern: escapePattern(command), reply });
-      origin.push(index);
+    if (ok) rows.push({ command, reply, expectsReply: row.reply.length > 0, index });
+  }
+  return rows;
+}
+
+function escapeCommandText(text) {
+  let escaped = '';
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const codeUnit = text.charCodeAt(index);
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
+      const nextCodeUnit = text.charCodeAt(index + 1);
+      if (nextCodeUnit >= 0xdc00 && nextCodeUnit <= 0xdfff) {
+        escaped += text.slice(index, index + 2);
+        index += 1;
+      } else {
+        escaped += '\\xEF\\xBF\\xBD';
+      }
+    } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
+      escaped += '\\xEF\\xBF\\xBD';
+    } else if (character === '0'
+      && (text[index + 1] === 'x' || text[index + 1] === 'X')
+      && (index === 0 || !/[0-9A-Za-z]/.test(text[index - 1]))) {
+      escaped += '\\x30';
+    } else if ('\\[]<>'.includes(character)) {
+      escaped += `\\${character}`;
+    } else {
+      escaped += character;
     }
+  }
+  return escaped;
+}
+
+// Errors are { where, code, source, detail? }. `where` is { row: n } or { field: name }.
+// `source` is 'table' for the checks made here and 'definition' for what the validator reported.
+function buildTableDefinition(input) {
+  const invalid = describeInput(input);
+  if (invalid !== null) {
+    return { ok: false, errors: [{ where: { field: invalid === 'not_an_object' ? 'input' : invalid }, code: 'invalid_input', source: 'table' }] };
+  }
+
+  const errors = [];
+  const fail = (where, code, detail) => errors.push(detail === undefined
+    ? { where, code, source: 'table' }
+    : { where, code, source: 'table', detail });
+
+  const name = input.name.trim();
+  if (name.length === 0) fail({ field: 'name' }, 'name_required');
+  else if (name.length > LIMITS.MAX_NAME) fail({ field: 'name' }, 'name_too_long');
+
+  const commands = [];
+  const origin = []; // origin[commandIndex] = table row index, to point validator errors back at a row
+  for (const row of collectTableRows(input, fail)) {
+    commands.push({ pattern: escapePattern(row.command), reply: row.reply });
+    origin.push(row.index);
   }
 
   const udp = input.transport === 'udp';
   let greeting = null;
   if (input.greeting.length > 0) {
     if (udp) fail({ field: 'greeting' }, 'greeting_udp');
-    else greeting = checkReply(input.greeting, { field: 'greeting' });
+    else greeting = checkReplyCell(input.greeting, input, fail, { field: 'greeting' });
   }
   let unknownReply = null;
-  if (input.unknownReply.length > 0) unknownReply = checkReply(input.unknownReply, { field: 'unknownReply' });
+  if (input.unknownReply.length > 0) unknownReply = checkReplyCell(input.unknownReply, input, fail, { field: 'unknownReply' });
 
   if (errors.length > 0) return { ok: false, errors };
 
@@ -167,6 +203,31 @@ function buildTableDefinition(input) {
   const checked = validateDefinition(json);
   if (!checked.ok) return { ok: false, errors: checked.errors.map((error) => mapDefinitionError(error, origin)) };
   return { ok: true, json, definition: checked.definition };
+}
+
+function buildTableCommands(input) {
+  const invalid = describeInput(input);
+  if (invalid !== null) {
+    return { ok: false, errors: [{ where: { field: invalid === 'not_an_object' ? 'input' : invalid }, code: 'invalid_input', source: 'table' }] };
+  }
+
+  const errors = [];
+  const fail = (where, code, detail) => errors.push(detail === undefined
+    ? { where, code, source: 'table' }
+    : { where, code, source: 'table', detail });
+  const rows = collectTableRows(input, fail, { maxCommandName: LIMITS.MAX_NAME });
+  if (errors.length > 0) return { ok: false, errors };
+
+  return {
+    ok: true,
+    commands: rows.map((row) => ({
+      name: row.command,
+      text: escapeCommandText(row.command),
+      mode: 'text',
+      appendTerminator: input.terminator,
+      expectsReply: row.expectsReply,
+    })),
+  };
 }
 
 // Points a validator error (a JSON Pointer into the finished document) back at the table.
@@ -188,4 +249,4 @@ function tableDefinitionText(json) {
   return `${JSON.stringify(json, null, 2)}\n`;
 }
 
-module.exports = { buildTableDefinition, tableDefinitionText, LIMITS, TERMINATORS };
+module.exports = { buildTableDefinition, buildTableCommands, tableDefinitionText, LIMITS, TERMINATORS };

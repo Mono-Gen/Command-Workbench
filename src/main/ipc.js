@@ -3,7 +3,7 @@
 // only known fields are passed on. Each channel maps to one fixed service call; there is no
 // generic "call anything" channel.
 const CHANNELS = [
-  'init', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive',
+  'init', 'saveData', 'importTable', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive',
   'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic', 'setLocale',
   'deviceState', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceTablePreview', 'deviceTableUse', 'deviceTableSave', 'deviceStart', 'deviceStop', 'deviceSetFault', 'deviceCloseAll',
   'relayState', 'relayStart', 'relayStop', 'relayClearRecording', 'relaySaveRecording', 'relayLoadRecording',
@@ -93,6 +93,27 @@ function createIpcHandlers({ service, deviceService, relayService, setLocale, on
     init: guard(() => service.init()),
 
     saveData: guard((arg) => (isObject(arg) ? service.saveData(arg) : INVALID)),
+
+    importTable: guard((arg) => {
+      if (!isPlainWithKeys(arg, ['table', 'target'])) return INVALID;
+      const table = readTable(arg.table);
+      if (table === null || !isPlainWithKeys(arg.target, [], ['existing', 'create'])) return INVALID;
+      const targetKeys = Object.keys(arg.target);
+      if (targetKeys.length !== 1) return INVALID;
+      let target;
+      if (targetKeys[0] === 'existing') {
+        if (typeof arg.target.existing !== 'string' || arg.target.existing.length < 1 || arg.target.existing.length > 100) return INVALID;
+        target = { existing: arg.target.existing };
+      } else {
+        const create = arg.target.create;
+        if (!isPlainWithKeys(create, ['name', 'host', 'port'])) return INVALID;
+        if (typeof create.name !== 'string' || create.name.length < 1 || create.name.length > 100) return INVALID;
+        if (typeof create.host !== 'string' || create.host.length < 1 || create.host.length > 253) return INVALID;
+        if (!isInt(create.port, 1, 65535)) return INVALID;
+        target = { create: { name: create.name, host: create.host, port: create.port } };
+      }
+      return service.importTable({ table, target });
+    }),
 
     parsePreview: guard((arg) => {
       const input = readInput(arg, { withReply: false });

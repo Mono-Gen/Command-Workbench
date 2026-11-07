@@ -268,6 +268,7 @@
   <li><span class="ui">Message on connect</span> is sent right after a connection and is optional. <span class="ui">Reply to an unknown command</span> is sent when nothing in the table matches; empty means no reply.</li>
   <li><span class="ui">Paste rows from a manual table</span> takes lines copied from a spreadsheet or a manual: the command and the reply separated by a tab, one command per line.</li>
   <li>A mistake (for example the same command twice) is shown with its row number, and the buttons stay disabled until it is fixed.</li>
+  <li><span class="ui">Add to the controller's saved commands</span> (below the table) saves the same commands as saved commands of a controller device, so the manual's table is typed only once. Choose a saved device or a new one (while the virtual device is running, its port is filled in). From the Controller tab, each command then makes the virtual device answer as the table says. A name that already exists in the target device is skipped, never overwritten.</li>
   <li>A table covers fixed replies only. A device whose state changes, or one that needs conditions, notifications or connection quirks, needs a JSON definition (see <a href="#definition">9. Writing a definition</a>).</li>
 </ul>
 

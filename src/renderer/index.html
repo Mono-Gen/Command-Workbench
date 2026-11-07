@@ -464,6 +464,18 @@
             <p id="tbl-paste-note" class="muted small-text" role="status"></p>
           </details>
           <label class="field"><span data-i18n="tbl.unknown"></span><input id="tbl-unknown" type="text" class="mono" spellcheck="false"></label>
+          <details class="paste" id="tbl-import">
+            <summary data-i18n="tbl.import.summary"></summary>
+            <p class="muted small-text" data-i18n="tbl.import.help"></p>
+            <label class="field"><span data-i18n="tbl.import.target"></span><select id="tbl-target"></select></label>
+            <div id="tbl-new-fields" class="row" hidden>
+              <label class="field grow"><span data-i18n="tbl.import.newName"></span><input id="tbl-new-name" type="text" maxlength="100" spellcheck="false"></label>
+              <label class="field grow"><span data-i18n="tbl.import.newHost"></span><input id="tbl-new-host" type="text" maxlength="253" spellcheck="false" value="127.0.0.1"></label>
+              <label class="field narrow"><span data-i18n="tbl.import.newPort"></span><input id="tbl-new-port" type="number" min="1" max="65535" inputmode="numeric"></label>
+            </div>
+            <div class="row"><button id="tbl-import-go" type="button" class="small" data-i18n="tbl.import.go"></button></div>
+            <p id="tbl-import-note" class="muted small-text" role="status"></p>
+          </details>
         </div>
         <div class="table-result">
           <h3 data-i18n="tbl.json.title"></h3>

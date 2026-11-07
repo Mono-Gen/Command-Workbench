@@ -599,4 +599,20 @@
   'tbl.used': 'Loaded "{name}" into the virtual device.',
   'tbl.saved': 'Saved {file}.',
   'tbl.runningLocked': 'A new definition cannot be used while the virtual device is listening. Stop it first.',
+
+  // ---- Add the table's commands to the controller's saved commands ----
+  'tbl.import.summary': 'Add to the controller\'s saved commands…',
+  'tbl.import.help': 'Also saves the table\'s commands as saved commands of the controller. When the controller sends one, the virtual device made from this table answers as the table says. A command whose name already exists in the target device is skipped, never overwritten.',
+  'tbl.import.target': 'Target device',
+  'tbl.import.new': '(save as a new device)',
+  'tbl.import.newName': 'Device name',
+  'tbl.import.newHost': 'Target (IP or host name)',
+  'tbl.import.newPort': 'Port',
+  'tbl.import.go': 'Add',
+  'tbl.import.needPort': 'Enter the port of the new device (1-65535). While the virtual device is running, its port is filled in for you.',
+  'tbl.import.done': 'Added {added} commands to "{device}".',
+  'tbl.import.none': 'There was nothing to add (every name already exists).',
+  'tbl.import.skipped': '{count} skipped because the name already exists: {names}',
+  'tbl.err.command_name_too_long': 'The command is too long to be a saved command name (100 characters at most).',
+  'err.unknown_device': 'That device was not found. Check the controller\'s device list.',
 }));

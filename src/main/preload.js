@@ -8,6 +8,7 @@ const call = (name) => (arg) => ipcRenderer.invoke(`wb:${name}`, arg);
 contextBridge.exposeInMainWorld('workbench', Object.freeze({
   init: call('init'),
   saveData: call('saveData'),
+  importTable: call('importTable'),
   parsePreview: call('parsePreview'),
   connect: call('connect'),
   disconnect: call('disconnect'),

@@ -211,7 +211,7 @@
     const running = D.server.running;
     $('vd-start').disabled = running || D.definition === null;
     $('vd-stop').disabled = !running;
-    for (const id of ['vd-load-file', 'vd-make-table', 'vd-host', 'vd-port']) $(id).disabled = running;
+    for (const id of ['vd-load-file', 'vd-host', 'vd-port']) $(id).disabled = running;
     // Choosing from the list needs a usable entry; reloading the list is always allowed.
     const noSample = !D.samples.items.some((sample) => sample.ok);
     $('vd-sample').disabled = running || noSample;
@@ -396,6 +396,8 @@
     failText,
     refreshSamples,
     isRunning: () => D.server.running,
+    // The port of the running virtual device (a new controller device usually points at it).
+    runningPort: () => (D.server.running ? D.server.port : null),
   });
 
   start0().catch((error) => {

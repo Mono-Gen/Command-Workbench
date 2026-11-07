@@ -4,7 +4,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildTableDefinition, tableDefinitionText, LIMITS } = require('../../src/core/table-definition');
+const { buildTableDefinition, buildTableCommands, tableDefinitionText, LIMITS } = require('../../src/core/table-definition');
+const { parseCommand } = require('../../src/core/parse-command');
 const { parseDefinitionText } = require('../../src/core/device-definition');
 const { createDeviceEngine } = require('../../src/core/device-engine');
 
@@ -190,4 +191,111 @@ test('the input object is not changed', () => {
   const before = JSON.stringify(value);
   buildTableDefinition(value);
   assert.equal(JSON.stringify(value), before);
+});
+
+test('table commands use literal command names and reply presence without a kind', () => {
+  const result = buildTableCommands(input({
+    rows: [{ command: '  PWR?  ', reply: 'PWR on' }, { command: 'SET 1', reply: '' }],
+  }));
+  assert.deepEqual(result, {
+    ok: true,
+    commands: [
+      { name: 'PWR?', text: 'PWR?', mode: 'text', appendTerminator: 'cr', expectsReply: true },
+      { name: 'SET 1', text: 'SET 1', mode: 'text', appendTerminator: 'cr', expectsReply: false },
+    ],
+  });
+  assert.equal(Object.hasOwn(result.commands[0], 'kind'), false);
+});
+
+function expectedCommandBytes(command, terminator) {
+  const endings = { cr: [0x0d], lf: [0x0a], crlf: [0x0d, 0x0a] };
+  return Buffer.concat([Buffer.from(command, 'utf8'), Buffer.from(endings[terminator])]);
+}
+
+function assertCommandInvariant(command, terminator = 'cr') {
+  const built = buildTableCommands(input({ terminator, rows: [{ command, reply: 'reply' }] }));
+  assert.equal(built.ok, true, `${JSON.stringify(command)}: ${JSON.stringify(built.errors)}`);
+  const parsed = parseCommand(built.commands[0].text, { mode: 'text', appendTerminator: terminator });
+  assert.equal(parsed.ok, true, `${JSON.stringify(command)}: ${JSON.stringify(parsed.errors)}`);
+  assert.deepEqual(Buffer.from(parsed.bytes), expectedCommandBytes(command.trim(), terminator), JSON.stringify(command));
+}
+
+test('table command text preserves tricky literal cells byte-for-byte', () => {
+  const commands = [
+    'A<B>', 'x[1]', 'a\\b', 'OK 0x0D', 'A0x0D', '0xZZ', '0X1f', '\\0x1', ']', '>',
+    '日本語', '{}*', 'spaces inside', '\ud800',
+  ];
+  for (const command of commands) assertCommandInvariant(command);
+});
+
+test('table command text preserves deterministic pseudo-random cells byte-for-byte', () => {
+  const alphabet = ['A', 'z', '0', '9', 'x', 'X', ' ', '\\', '[', ']', '<', '>', '{', '}', '*', '?', 'あ'];
+  const documentedErrors = new Set([
+    'command_empty', 'command_control_character', 'command_terminator_included', 'command_name_too_long',
+    'command_too_long', 'command_duplicate', 'reply_control_character', 'reply_terminator_included',
+    'reply_too_long', 'too_many_rows', 'no_rows',
+  ]);
+  let state = 0x51f15e;
+  const random = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state;
+  };
+  for (let caseIndex = 0; caseIndex < 3000; caseIndex += 1) {
+    const length = 1 + (random() % 8);
+    let command = '';
+    for (let index = 0; index < length; index += 1) command += alphabet[random() % alphabet.length];
+    if (command.trim().length === 0) command = `A${command.slice(1)}`;
+    const built = buildTableCommands(input({ rows: [{ command, reply: 'reply' }] }));
+    if (!built.ok) {
+      assert.ok(built.errors.length > 0);
+      for (const error of built.errors) assert.ok(documentedErrors.has(error.code), JSON.stringify(error));
+      continue;
+    }
+    const parsed = parseCommand(built.commands[0].text, { mode: 'text', appendTerminator: 'cr' });
+    assert.equal(parsed.ok, true, `${JSON.stringify(command)}: ${JSON.stringify(parsed.errors)}`);
+    assert.deepEqual(Buffer.from(parsed.bytes), expectedCommandBytes(command.trim(), 'cr'), JSON.stringify(command));
+  }
+});
+
+test('table command names accept 100 characters and reject 101 without truncating', () => {
+  const accepted = buildTableCommands(input({ rows: [{ command: 'n'.repeat(100), reply: '' }] }));
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.commands[0].name.length, 100);
+
+  const rejected = buildTableCommands(input({ rows: [{ command: 'n'.repeat(101), reply: '' }] }));
+  assert.deepEqual(codes(rejected), ['0:command_name_too_long']);
+});
+
+test('table commands share the 500-row boundary', () => {
+  const rows = Array.from({ length: LIMITS.MAX_ROWS }, (_, index) => ({ command: `C${index}`, reply: '' }));
+  assert.equal(buildTableCommands(input({ rows })).ok, true);
+  assert.deepEqual(
+    codes(buildTableCommands(input({ rows: [...rows, { command: 'OVER', reply: '' }] }))),
+    ['rows:too_many_rows'],
+  );
+});
+
+test('table commands share row validation and preserve original row numbers around blanks', () => {
+  const rows = [
+    { command: '', reply: '' },
+    { command: '', reply: 'orphan' },
+    { command: 'DUP', reply: '' },
+    { command: '', reply: '' },
+    { command: 'DUP', reply: '' },
+    { command: `BAD${String.fromCharCode(9)}X`, reply: '' },
+    { command: 'TERM[CR]', reply: '' },
+    { command: 'OK', reply: `bad${String.fromCharCode(10)}` },
+  ];
+  const result = buildTableCommands(input({ rows }));
+  assert.deepEqual(codes(result), [
+    '1:command_empty', '4:command_duplicate', '5:command_control_character',
+    '6:command_terminator_included', '7:reply_control_character',
+  ]);
+  assert.deepEqual(result.errors[1].detail, { firstRow: 2 });
+  assert.deepEqual(codes(buildTableCommands(input({ rows: [] }))), ['rows:no_rows']);
+  assert.deepEqual(codes(buildTableCommands(input({ rows: [{ command: ' ', reply: '' }] }))), ['rows:no_rows']);
+});
+
+test('table commands preserve all three automatic terminators', () => {
+  for (const terminator of ['cr', 'lf', 'crlf']) assertCommandInvariant('A<B> 0xZZ', terminator);
 });

@@ -8,7 +8,7 @@
   const wb = window.workbench;
   const C = window.WbCommon;
   const L = window.WbLogic;
-  const { $, el, t, showNotice } = C;
+  const { $, el, t, fail, showNotice } = C;
 
   const MAX_ROWS = 500; // the same limit as the core; the main process reports it per row as well
   const PREVIEW_DELAY_MS = 150;
@@ -20,6 +20,7 @@
     seq: 0, // only the newest preview answer is shown
     timer: null,
     defaultName: '',
+    newNameTouched: false, // the user wrote the name of the new controller device themselves
   };
 
   const rowsBody = () => $('tbl-rows');
@@ -190,6 +191,7 @@
     const running = window.WbDeviceView.isRunning();
     $('tbl-use').disabled = S.busy || !S.ready || running;
     $('tbl-save').disabled = S.busy || !S.ready;
+    $('tbl-import-go').disabled = S.busy || !S.ready;
     $('tbl-lock').textContent = running ? t('tbl.runningLocked') : '';
   }
 
@@ -294,10 +296,94 @@
     window.WbDeviceView.refreshSamples();
   });
 
+  // ---- add the commands to a saved controller device ------------------------------------------
+
+  const importNote = (text) => { $('tbl-import-note').textContent = text; };
+
+  // The saved devices of the controller view, plus "new device". Asked again whenever the section is
+  // opened, because devices may have been added or removed since.
+  function populateTargets() {
+    const select = $('tbl-target');
+    const previous = select.value;
+    select.replaceChildren();
+    for (const name of window.WbControllerView.deviceNames()) {
+      const option = el('option', '', name);
+      option.value = `existing:${name}`;
+      select.appendChild(option);
+    }
+    const fresh = el('option', '', t('tbl.import.new'));
+    fresh.value = 'new';
+    select.appendChild(fresh);
+    const values = Array.from(select.options, (option) => option.value);
+    select.value = values.includes(previous) ? previous : values[0];
+    syncTarget();
+  }
+
+  function syncTarget() {
+    const isNew = $('tbl-target').value === 'new';
+    $('tbl-new-fields').hidden = !isNew;
+    if (!isNew) return;
+    // Until the user writes a name of their own, the new device is named like the table.
+    if (!S.newNameTouched) $('tbl-new-name').value = $('tbl-name').value;
+    const port = window.WbDeviceView.runningPort();
+    if ($('tbl-new-port').value === '' && port !== null) $('tbl-new-port').value = String(port);
+  }
+
+  async function importCommands() {
+    if (S.busy || !S.ready) return;
+    let target;
+    let deviceName;
+    if ($('tbl-target').value === 'new') {
+      const port = Number($('tbl-new-port').value);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) {
+        importNote(t('tbl.import.needPort'));
+        return;
+      }
+      deviceName = $('tbl-new-name').value;
+      target = { create: { name: deviceName, host: $('tbl-new-host').value, port } };
+    } else {
+      deviceName = $('tbl-target').value.slice('existing:'.length);
+      target = { existing: deviceName };
+    }
+    S.busy = true;
+    updateButtons();
+    importNote('');
+    try {
+      const result = await wb.importTable({ table: readTable(), target });
+      if (result.ok) {
+        window.WbControllerView.applyData(result.data, deviceName);
+        populateTargets();
+        // A device that was just created is now one of the saved ones: a second press adds to it.
+        $('tbl-target').value = `existing:${deviceName}`;
+        syncTarget();
+        let text = result.added > 0
+          ? t('tbl.import.done', { device: deviceName, added: result.added })
+          : t('tbl.import.none');
+        if (result.skipped.length > 0) {
+          const shown = result.skipped.slice(0, 5).join(', ');
+          const more = result.skipped.length > 5 ? ', …' : '';
+          text += ` ${t('tbl.import.skipped', { count: result.skipped.length, names: shown + more })}`;
+        }
+        importNote(text);
+      } else if (result.code === 'invalid_table') {
+        showResult(result);
+        importNote(t('dev.err.invalid_table'));
+      } else {
+        importNote(fail(result));
+      }
+    } catch (error) {
+      importNote(fail({ code: 'internal_error' }));
+    } finally {
+      S.busy = false;
+      updateButtons();
+    }
+  }
+
   // ---- wiring ---------------------------------------------------------------------------------
 
   function open() {
     updateButtons();
+    populateTargets();
     $('table-dialog').showModal();
     $('tbl-name').focus();
     schedulePreview();
@@ -308,6 +394,7 @@
     const next = t('tbl.defaultName');
     if ($('tbl-name').value === S.defaultName) $('tbl-name').value = next;
     S.defaultName = next;
+    populateTargets();
     syncTransport();
     placeholders();
     renumber();
@@ -333,6 +420,11 @@
     $('tbl-paste-apply').addEventListener('click', applyPaste);
     $('tbl-use').addEventListener('click', useDefinition);
     $('tbl-save').addEventListener('click', saveDefinition);
+    $('tbl-target').addEventListener('change', syncTarget);
+    $('tbl-new-name').addEventListener('input', () => { S.newNameTouched = true; });
+    $('tbl-name').addEventListener('input', () => { if ($('tbl-target').value === 'new') syncTarget(); });
+    $('tbl-import-go').addEventListener('click', importCommands);
+    $('tbl-import').addEventListener('toggle', () => { if ($('tbl-import').open) populateTargets(); });
     C.onLocaleChange(onLocaleChange);
   }
 
