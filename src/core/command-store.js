@@ -89,22 +89,24 @@ function validateCommand(command, path, seenNames, errors, budget) {
   if (!TERMINATORS.includes(command.appendTerminator)) {
     errors.push({ path: `${path}.appendTerminator`, code: 'invalid_terminator' });
   }
-  if (!KINDS.includes(command.kind)) {
+  const hasKind = command.kind !== undefined;
+  if (hasKind && !KINDS.includes(command.kind)) {
     errors.push({ path: `${path}.kind`, code: 'invalid_kind' });
   }
   if (command.expectsReply !== undefined && typeof command.expectsReply !== 'boolean') {
     errors.push({ path: `${path}.expectsReply`, code: 'invalid_expects_reply' });
   }
 
-  return {
+  const normalized = {
     name: command.name,
     text: command.text,
     mode: command.mode,
     appendTerminator: command.appendTerminator,
-    kind: command.kind,
-    // A query is expected to answer; a set command is often silent on success.
-    expectsReply: typeof command.expectsReply === 'boolean' ? command.expectsReply : command.kind === 'query',
+    // Preserve the legacy default for set commands; new commands default to expecting a reply.
+    expectsReply: typeof command.expectsReply === 'boolean' ? command.expectsReply : !hasKind || command.kind !== 'set',
   };
+  if (hasKind) normalized.kind = command.kind;
+  return normalized;
 }
 
 function validateDevice(device, path, seenNames, errors, budget) {

@@ -54,20 +54,20 @@ test('every parse error code has a message', () => {
 
 test('every result code the main process can return has a message', () => {
   const codes = [
-    'not_connected', 'cancelled', 'busy_confirming', 'busy', 'invalid_target', 'invalid_arguments', 'internal_error',
-    'untrusted_sender', 'unknown_command', 'not_query', 'invalid_interval', 'already_running', 'queue_full',
+    'not_connected', 'cancelled', 'busy', 'invalid_target', 'invalid_arguments', 'internal_error',
+    'untrusted_sender', 'unknown_command', 'invalid_interval', 'already_running', 'queue_full',
     'write_failed', 'replace_failed', 'file_too_large', 'invalid_data', 'not_loaded', 'blocked_by_unreadable_file', 'parse_error',
-    'too_long_to_confirm', 'invalid_local_port', 'rate_limited', 'too_large', 'unsupported',
+    'invalid_local_port', 'rate_limited', 'too_large', 'unsupported',
   ];
   for (const table of [ja, en]) {
     for (const code of codes) assert.ok(table[`err.${code}`], `err.${code}`);
-    for (const reason of ['read_only_blocks_set', 'read_only_blocks_unclassified', 'read_only_blocks_periodic', 'changed_before_send']) assert.ok(table[`blocked.${reason}`], reason);
+    for (const reason of ['changed_before_send']) assert.ok(table[`blocked.${reason}`], reason);
   }
 });
 
 test('every periodic stop reason and every load status banner has a message', () => {
   for (const table of [ja, en]) {
-    for (const reason of ['user', 'connection_closed', 'read_only', 'send_failed', 'shutdown']) assert.ok(table[`periodic.stopped.${reason}`], reason);
+    for (const reason of ['user', 'connection_closed', 'send_failed', 'shutdown']) assert.ok(table[`periodic.stopped.${reason}`], reason);
     for (const status of ['corrupt', 'invalid', 'unsupported', 'too_large', 'read_error']) assert.ok(table[`banner.load.${status}`], status);
   }
 });

@@ -16,7 +16,6 @@
     data: { schemaVersion: 1, devices: [] },
     load: { status: 'not_loaded', errors: [], leftoverTemps: [] },
     dataInfo: null,
-    readOnly: false,
     connection: 'idle',
     target: '',
     transport: 'tcp',
@@ -145,27 +144,22 @@
       const item = el('li', 'command-item');
       const head = el('div', 'row');
       head.appendChild(el('span', 'name', command.name));
-      head.appendChild(el('span', `kind ${command.kind}`, t(`commands.kind.${command.kind}`)));
       item.appendChild(head);
       item.appendChild(el('div', 'text mono', command.text));
 
       const actions = el('div', 'actions');
       const send = el('button', 'small primary', t('commands.send'));
       send.type = 'button';
-      const blockedByReadOnly = S.readOnly && command.kind !== 'query';
-      send.disabled = S.connection !== 'connected' || blockedByReadOnly || S.sending;
-      if (blockedByReadOnly) send.title = t('blocked.read_only_blocks_set');
-      else if (S.connection !== 'connected') send.title = t('err.not_connected');
+      send.disabled = S.connection !== 'connected' || S.sending;
+      if (S.connection !== 'connected') send.title = t('err.not_connected');
       send.addEventListener('click', () => sendSaved(command));
       actions.appendChild(send);
 
-      if (command.kind === 'query') {
-        const repeat = el('button', 'small', t('commands.periodic'));
-        repeat.type = 'button';
-        repeat.disabled = S.connection !== 'connected' || S.periodic.running;
-        repeat.addEventListener('click', () => startPeriodic(command));
-        actions.appendChild(repeat);
-      }
+      const repeat = el('button', 'small', t('commands.periodic'));
+      repeat.type = 'button';
+      repeat.disabled = S.connection !== 'connected' || S.periodic.running;
+      repeat.addEventListener('click', () => startPeriodic(command));
+      actions.appendChild(repeat);
       const edit = el('button', 'small', t('commands.edit'));
       edit.type = 'button';
       edit.addEventListener('click', () => openCommandDialog(command));
@@ -261,9 +255,6 @@
     $('command-text').value = existing ? existing.text : fromComposer.text;
     $('command-mode').value = existing ? existing.mode : fromComposer.mode;
     $('command-terminator').value = existing ? existing.appendTerminator : fromComposer.appendTerminator;
-    // New commands default to "set": the safe side, which asks for confirmation on every send.
-    const kind = existing ? existing.kind : 'set';
-    for (const radio of document.querySelectorAll('input[name="command-kind"]')) radio.checked = radio.value === kind;
     $('command-expects-reply').checked = existing ? existing.expectsReply !== false : fromComposer.expectsReply;
     $('command-error').textContent = '';
     $('command-dialog').showModal();
@@ -273,13 +264,11 @@
   async function submitCommand(event) {
     event.preventDefault();
     const device = currentDevice();
-    const kindRadio = document.querySelector('input[name="command-kind"]:checked');
     const command = {
       name: $('command-name').value,
       text: $('command-text').value,
       mode: $('command-mode').value,
       appendTerminator: $('command-terminator').value,
-      kind: kindRadio ? kindRadio.value : 'set',
       expectsReply: $('command-expects-reply').checked,
     };
     const result = await commit(L.withCommand(S.data, device.name, S.editingCommand, command));
@@ -481,11 +470,6 @@
       case 'log': appendLog(message.payload); break;
       case 'hints': S.hints = message.payload.hints; renderHints(); break;
       case 'periodic': onPeriodic(message.payload); break;
-      case 'readOnly':
-        S.readOnly = message.payload.readOnly;
-        $('readonly').checked = S.readOnly;
-        renderCommands();
-        break;
       default: break;
     }
   }
@@ -531,17 +515,6 @@
         const result = await wb.setKeepAlive({ enabled: $('keepalive').checked });
         if (!result.ok) showNotice(fail(result), true);
       }
-    });
-    $('readonly').addEventListener('change', async () => {
-      const result = await wb.setReadOnly($('readonly').checked);
-      // The main process decides: turning it off needs a native confirmation, and if that is
-      // declined the checkbox goes back to "on".
-      if (typeof result.readOnly === 'boolean') {
-        S.readOnly = result.readOnly;
-        $('readonly').checked = result.readOnly;
-        renderCommands();
-      }
-      if (!result.ok && result.code !== 'cancelled') showNotice(fail(result), true);
     });
     $('locale').addEventListener('change', () => {
       C.setLocale($('locale').value);
@@ -596,10 +569,8 @@
     S.data = state.data;
     S.load = state.load;
     S.dataInfo = state.dataInfo;
-    S.readOnly = state.readOnly;
     S.connection = state.connectionState;
     S.transport = state.transport === 'udp' ? 'udp' : 'tcp';
-    $('readonly').checked = S.readOnly;
     $('port').value = '23';
     renderAll();
     fillTargetFromDevice();

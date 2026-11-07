@@ -3,7 +3,7 @@
 // only known fields are passed on. Each channel maps to one fixed service call; there is no
 // generic "call anything" channel.
 const CHANNELS = [
-  'init', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setReadOnly', 'setKeepAlive',
+  'init', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive',
   'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic', 'setLocale',
   'deviceState', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceTablePreview', 'deviceTableUse', 'deviceTableSave', 'deviceStart', 'deviceStop', 'deviceSetFault', 'deviceCloseAll',
   'relayState', 'relayStart', 'relayStop', 'relayClearRecording', 'relaySaveRecording', 'relayLoadRecording',
@@ -121,8 +121,6 @@ function createIpcHandlers({ service, deviceService, relayService, setLocale, on
     }),
 
     disconnect: guard(() => service.disconnect()),
-
-    setReadOnly: guard((arg) => (typeof arg === 'boolean' ? service.setReadOnly(arg) : INVALID)),
 
     setKeepAlive: guard((arg) => {
       if (!isObject(arg) || typeof arg.enabled !== 'boolean') return INVALID;

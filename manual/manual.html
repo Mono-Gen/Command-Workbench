@@ -145,7 +145,7 @@
   <figcaption>The Controller tab right after start. Nothing is connected yet.</figcaption>
 </figure>
 <ol>
-  <li><strong>The connection bar (top).</strong> Enter the transport (TCP / UDP), the target and the port, then press <span class="ui">Connect</span> or <span class="ui">Disconnect</span>. The badge on the right shows the current state with both colour and a symbol. The <span class="ui">Read-only</span> box is a safety switch for real devices (<a href="#safety">chapter 11</a>).</li>
+  <li><strong>The connection bar (top).</strong> Enter the transport (TCP / UDP), the target and the port, then press <span class="ui">Connect</span> or <span class="ui">Disconnect</span>. The badge on the right shows the current state with both colour and a symbol. The <span class="ui">Connection check (TCP keepalive)</span> box is explained under <a href="#controller">Repeat sending</a>.</li>
   <li><strong>The command input (below it).</strong> The input format, the terminator added automatically, the input box, <span class="ui">Send</span> and <span class="ui">Save as command</span>. <span class="ui">Bytes to send</span> under the box is what will really be sent.</li>
   <li><strong>The left column.</strong> <span class="ui">Devices</span> (saved targets) and the <span class="ui">Commands</span> saved for each device.</li>
   <li><strong>The middle panel, <span class="ui">Traffic</span>.</strong> What you sent (blue) and what you received (green), with times. The upper row is hexadecimal and the lower row is text; control characters such as CR and LF are shown in coloured boxes.</li>
@@ -204,15 +204,10 @@
 <p>When <span class="ui">Expect a reply</span> is ticked and no reply comes within about three seconds, a hint appears. Untick it when you send to a device that stays silent on success.</p>
 
 <h3>Saving commands for reuse</h3>
-<p>Press <span class="ui">Save as command</span>, give it a name and choose a <strong>kind</strong>. Saved commands appear under <span class="ui">Commands</span> on the left and can be sent with one press of <span class="ui">Send</span>. Commands are saved per device.</p>
-<ul>
-  <li><strong>Query</strong>: a read that does <em>not</em> change the device's state (for example <code>PWR?</code>).</li>
-  <li><strong>Set</strong>: a command that <em>may</em> change the device's state (for example <code>PWR 1</code>). If unsure, choose <strong>Set</strong>.</li>
-</ul>
-<p>The kind is used by the safety features (read-only mode, <a href="#safety">chapter 11</a>). They are saved in <code>workbench-commands.json</code> in the same folder as the program.</p>
+<p>Press <span class="ui">Save as command</span> and give it a name. Saved commands appear under <span class="ui">Commands</span> on the left and can be sent with one press of <span class="ui">Send</span>. Commands are saved per device, in <code>workbench-commands.json</code> in the same folder as the program.</p>
 
 <h3>Repeat sending (keeping a connection alive)</h3>
-<p>Some devices close the connection when no command arrives for a while. <span class="ui">Repeat sending</span> helps prevent that by sending <strong>only a query command</strong> at a fixed interval. Press <span class="ui">Repeat</span> on a saved command, set the interval (seconds) in the right column and press <span class="ui">Start</span>. It cannot be started while Read-only is on, and it stops when the connection ends.</p>
+<p>Some devices close the connection when no command arrives for a while. <span class="ui">Repeat sending</span> helps prevent that by sending <strong>a saved command</strong> at a fixed interval. Press <span class="ui">Repeat</span> on a saved command, set the interval (seconds) in the right column and press <span class="ui">Start</span>. It keeps sending until you stop it, and it stops when the connection ends. A command that changes the device is sent again and again, so choose with care.</p>
 <p>Separately, there is a <span class="ui">Connection check (TCP keepalive)</span> box. That is the operating system checking that the other side has not disappeared; a device does not necessarily count it as activity.</p>
 
 <h3>Diagnostic hints</h3>
@@ -436,17 +431,12 @@
 
 <details>
   <summary>The device disconnects after a while</summary>
-  <p>Some devices close the connection when no command arrives for a while. Check the manual for what counts as activity (TCP keepalive may not count). Sending a query command with <span class="ui">Repeat sending</span> can prevent it.</p>
+  <p>Some devices close the connection when no command arrives for a while. Check the manual for what counts as activity (TCP keepalive may not count). Sending a command that only reads, with <span class="ui">Repeat sending</span>, can prevent it.</p>
 </details>
 
 <details>
-  <summary>"Send" is disabled or blocked</summary>
-  <p>With <span class="ui">Read-only</span> ticked, only saved "query" commands can be sent. Set commands and raw input are blocked. This is meant to protect a real device. Unticking it asks for confirmation.</p>
-</details>
-
-<details>
-  <summary>I cannot save a command as a "query"</summary>
-  <p>A command longer than 256 bytes cannot be saved as a query, because the confirmation screen could not show all of it. Save it as a "set" command.</p>
+  <summary>"Send" is disabled</summary>
+  <p>Sending works only while the program is connected. Press <span class="ui">Connect</span> first, and check that the badge reads <span class="ui">Connected</span>.</p>
 </details>
 
 <details>
@@ -483,16 +473,7 @@
 </div>
 
 <h3>There is no confirmation on send</h3>
-<p>Pressing <span class="ui">Send</span> is the confirmation. <strong>Set commands and typed input are sent as soon as you press it, just like queries.</strong> Check the bytes shown under the input box first.</p>
-
-<h3>Keep queries and sets apart</h3>
-<ul>
-  <li>When you save a command, mark as a <strong>query</strong> only what does not change the state. If unsure, mark it <strong>set</strong>.</li>
-  <li>When you save something as a "query", the program's own dialog lists the exact bytes. Check them, then approve. Changing the contents of a saved query asks again.</li>
-</ul>
-
-<h3>Read-only mode</h3>
-<p>When you connect a real device just to <strong>look</strong>, tick <span class="ui">Read-only</span>. Then only saved queries can be sent; set commands and typed input are blocked. Unticking it also asks for confirmation.</p>
+<p>Pressing <span class="ui">Send</span> is the confirmation. <strong>Saved commands and typed input are sent as soon as you press it.</strong> Check the bytes shown under the input box first.</p>
 
 <h3>Listening on the whole network</h3>
 <ul>
@@ -538,8 +519,6 @@
   <dd>A way of writing numbers with 0–9 and A–F. One byte is two digits (<code>00</code> to <code>FF</code>). It is used to look at what is sent and received.</dd>
   <dt>Byte</dt>
   <dd>The smallest unit of data in communication. One letter or digit is one byte.</dd>
-  <dt>Query / Set</dt>
-  <dd>The kinds of command in this tool. A query reads without changing the device's state; a set command may change it.</dd>
   <dt>Definition file</dt>
   <dd>A small JSON file that describes how a virtual device behaves. How to write one is in <a href="../docs/device-definition.md">a separate guide</a>.</dd>
   <dt>TCP keepalive</dt>

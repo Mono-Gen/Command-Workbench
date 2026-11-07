@@ -1,5 +1,5 @@
-// Tests for the periodic message sender. Rules come from the plan (sections 3, 6, 7):
-// only query commands, minimum 1 second, timers must always be stopped.
+// Tests for the periodic message sender: any saved command may run, the interval starts at one
+// second, and timers must always be stopped.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -20,10 +20,11 @@ function setup(sendImpl) {
   return { clock, sent, stopped, periodic };
 }
 
-test('start: only query commands are allowed', () => {
+test('start: set-kind and kind-less commands are allowed', () => {
   const { periodic, clock } = setup();
-  for (const command of [{ kind: 'set' }, {}, { kind: 'x' }]) {
-    assert.deepEqual(periodic.start(command, 5000), { ok: false, code: 'not_query' });
+  for (const command of [{ kind: 'set' }, {}]) {
+    assert.deepEqual(periodic.start(command, 5000), { ok: true });
+    periodic.stop();
   }
   assert.equal(periodic.isRunning(), false);
   assert.equal(clock.pendingTimers(), 0);

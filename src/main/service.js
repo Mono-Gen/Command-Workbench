@@ -1,25 +1,11 @@
-// Application service: the single place where the rules for talking to a real device are enforced.
-//
+// Application service for saved commands, connections, sending and diagnostics.
 // The renderer is NOT trusted. It may only name a saved command (device + command name) or send
-// raw input; the classification ("query" / "set"), the text and the read-only flag all live here,
-// in the main process. Electron-specific pieces (dialog, IPC) are injected, so this module can be
-// tested with fakes. See the plan, section 9.47, for the rules enforced below:
-//
-//  - Sending needs no confirmation dialog: pressing "Send" is the user's confirmation, and the
-//    exact bytes are shown just below the input box.
-//  - Conditions (read-only, connection) are checked at the moment of writing, after any wait in
-//    the write queue.
-//  - "Query" is a promise that a command does not change the device, so attaching it to a
-//    command (or changing a query's content) needs a native confirmation; otherwise a page
-//    could relabel any command and have it sent while read-only mode is on.
-//  - Turning read-only mode OFF needs a native confirmation as well.
+// raw input. Saved command content is resolved from validated main-process data.
 const { parseCommand } = require('../core/parse-command');
 const { formatView, createTextStream } = require('../core/format-view');
 const { diagnose } = require('../core/diagnose');
-const { isSendAllowed } = require('../core/safety');
 const { validateStore } = require('../core/command-store');
 const { createPeriodic, MIN_INTERVAL_MS, MAX_INTERVAL_MS } = require('./periodic');
-const { MAX_SHOWN_BYTES } = require('./messages');
 
 const HINT_TICK_MS = 1000;
 // Bytes of one received UDP datagram that are shown in the log.
@@ -38,7 +24,6 @@ function createService({
   // The UDP endpoint has the same outward shape as `connection`; `active` is the one in use.
   udp = null,
   store,
-  confirm,
   emit = () => {},
   now = Date.now,
   scheduler = { setInterval, clearInterval, setTimeout, clearTimeout },
@@ -46,8 +31,6 @@ function createService({
 }) {
   let data = { schemaVersion: 1, devices: [] };
   let loadInfo = { status: 'not_loaded', errors: [], leftoverTemps: [] };
-  let readOnly = false;
-  let confirming = false;
   let active = connection;
   let hintTimer = null;
   let lastHintsJson = '[]';
@@ -68,19 +51,6 @@ function createService({
   }
 
   const isBusy = () => [connection, udp].some((endpoint) => endpoint !== null && ['connecting', 'connected', 'closing'].includes(endpoint.getState()));
-
-  // ---- confirmation ---------------------------------------------------------------------
-
-  // Only one dialog at a time. Returns { busy: true } when another one is already open.
-  async function askConfirm(info) {
-    if (confirming) return { busy: true };
-    confirming = true;
-    try {
-      return { accepted: (await confirm(info)) === true };
-    } finally {
-      confirming = false;
-    }
-  }
 
   // ---- hints --------------------------------------------------------------------------
 
@@ -141,15 +111,11 @@ function createService({
   // ---- sending ------------------------------------------------------------------------
 
   // `command` is always built by this module from saved data or raw input; it never comes from
-  // the renderer as-is. `kind` is undefined for raw input (unclassified).
+  // the renderer as-is.
   async function sendResolved(command) {
     const parsed = parseCommand(command.text, { mode: command.mode, appendTerminator: command.appendTerminator });
     if (!parsed.ok) {
       return { ok: false, code: 'parse_error', errors: parsed.errors };
-    }
-    const allowed = isSendAllowed(command, { readOnly });
-    if (!allowed.allowed) {
-      return { ok: false, code: 'blocked', reason: allowed.reason };
     }
     const endpoint = active;
     if (endpoint.getState() !== 'connected') {
@@ -163,7 +129,7 @@ function createService({
       expectsReply: command.expectsReply,
       endsWithTerminator: endsWithTerminator(parsed.bytes),
       // Checked right before the bytes are written, after any wait in the write queue.
-      guard: () => active === endpoint && endpoint.getId() === connectionId && isSendAllowed(command, { readOnly }).allowed,
+      guard: () => active === endpoint && endpoint.getId() === connectionId,
     });
     if (result.ok) {
       emitLog('tx', parsed.bytes, new TextDecoder().decode(parsed.bytes));
@@ -182,42 +148,10 @@ function createService({
 
   // ---- saving the command list --------------------------------------------------------
 
-  // Queries whose meaning is new or changed compared with what is currently saved. Only the
-  // fields that decide what is sent count: the text, its mode and the automatic terminator.
-  function queriesNeedingApproval(before, after) {
-    const needed = [];
-    for (const device of after.devices) {
-      const oldDevice = before.devices.find((d) => d.name === device.name);
-      for (const command of device.commands) {
-        if (command.kind !== 'query') continue;
-        const old = oldDevice && oldDevice.commands.find((c) => c.name === command.name);
-        const unchanged = old && old.kind === 'query' && old.text === command.text
-          && old.mode === command.mode && old.appendTerminator === command.appendTerminator;
-        if (!unchanged) needed.push({ device: device.name, command });
-      }
-    }
-    return needed;
-  }
-
   async function saveData(next) {
     const validation = validateStore(next);
     if (!validation.ok) {
       return store.save(next); // returns the standard invalid_data result
-    }
-
-    const items = [];
-    for (const { device, command } of queriesNeedingApproval(data, validation.data)) {
-      const parsed = parseCommand(command.text, { mode: command.mode, appendTerminator: command.appendTerminator });
-      // A command that cannot be parsed cannot be sent, so there is nothing to approve yet;
-      // it will be approved when it is fixed.
-      if (!parsed.ok) continue;
-      if (parsed.bytes.length > MAX_SHOWN_BYTES) return { ok: false, code: 'too_long_to_confirm' };
-      items.push({ device, name: command.name, bytes: parsed.bytes });
-    }
-    if (items.length > 0) {
-      const answer = await askConfirm({ reasons: ['classify_query'], name: null, bytes: null, items, target: null });
-      if (answer.busy) return { ok: false, code: 'busy_confirming' };
-      if (!answer.accepted) return { ok: false, code: 'cancelled' };
     }
 
     const result = await store.save(validation.data);
@@ -242,7 +176,6 @@ function createService({
     return {
       load: loadInfo,
       data,
-      readOnly,
       connectionState: active.getState(),
       transport: active === udp ? 'udp' : 'tcp',
       periodicRunning: periodic.isRunning(),
@@ -284,24 +217,6 @@ function createService({
     return active.disconnect();
   }
 
-  // Turning read-only ON is always allowed. Turning it OFF is a user decision made in a native
-  // dialog, so a page cannot lift this protection by itself.
-  async function setReadOnly(value) {
-    const wanted = Boolean(value);
-    if (wanted === readOnly) return { ok: true, readOnly };
-    if (!wanted) {
-      const answer = await askConfirm({ reasons: ['disable_read_only'], name: null, bytes: null });
-      if (answer.busy) return { ok: false, code: 'busy_confirming', readOnly };
-      if (!answer.accepted) return { ok: false, code: 'cancelled', readOnly };
-      // The user may have switched it on again while the dialog was open; honor the dialog.
-    }
-    readOnly = wanted;
-    // An automatic sender must not keep running in a mode meant to keep the device quiet.
-    if (readOnly) periodic.stop('read_only');
-    emit('readOnly', { readOnly });
-    return { ok: true, readOnly };
-  }
-
   function setKeepAlive(enabled, initialDelayMs) {
     return active.setKeepAlive(Boolean(enabled), initialDelayMs);
   }
@@ -312,7 +227,6 @@ function createService({
     return sendResolved(found.command);
   }
 
-  // Raw input is always unclassified: whatever the renderer says about its kind is ignored.
   function sendDirect({ text, mode, appendTerminator, expectsReply }) {
     return sendResolved({
       name: null,
@@ -326,8 +240,6 @@ function createService({
   async function startPeriodic({ device, command, intervalMs }) {
     const found = findSaved({ device, command });
     if (!found) return { ok: false, code: 'unknown_command' };
-    if (found.command.kind !== 'query') return { ok: false, code: 'not_query' };
-    if (readOnly) return { ok: false, code: 'blocked', reason: 'read_only_blocks_periodic' };
     if (!Number.isInteger(intervalMs) || intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS) {
       return { ok: false, code: 'invalid_interval' };
     }
@@ -365,7 +277,6 @@ function createService({
     parsePreview,
     connect,
     disconnect,
-    setReadOnly,
     setKeepAlive,
     sendSaved,
     sendDirect,

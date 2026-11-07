@@ -1,11 +1,8 @@
-// Sends a harmless query command at a fixed interval (an application-level "keep-alive").
+// Sends a saved command at a fixed interval (an application-level "keep-alive").
 // It is NOT the same as TCP keepalive, and a device may not count it as activity either.
-// Safety: only commands classified as queries are accepted, so the timer can never repeat a
-// command that changes the device state. The command is copied (and frozen) at start, so
-// changing the caller's object later cannot turn it into a different command. The timer is
-// always stopped when sending fails, hangs or the connection ends, so it cannot keep running
-// in the background.
-const { canBePeriodic } = require('../core/safety');
+// The command is copied (and frozen) at start, so changing the caller's object later cannot
+// change what is sent. The timer is always stopped when sending fails, hangs or the connection
+// ends, so it cannot keep running in the background.
 
 const MIN_INTERVAL_MS = 1000;
 const MAX_INTERVAL_MS = 3600000;
@@ -59,10 +56,6 @@ function createPeriodic({
       throw new TypeError('command must be an object');
     }
     const snapshot = Object.freeze({ ...command });
-    const allowed = canBePeriodic(snapshot);
-    if (!allowed.allowed) {
-      return { ok: false, code: allowed.reason };
-    }
     if (!Number.isInteger(intervalMs) || intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS) {
       return { ok: false, code: 'invalid_interval' };
     }

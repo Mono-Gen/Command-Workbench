@@ -49,7 +49,7 @@ To use a real device, enter its IP address and port instead. Read "Staying safe 
 - **A table instead of JSON for a first virtual device.** Copy the command table from a manual (or paste it), and the program writes the definition for you and shows the JSON beside it.
 - **Hex and text side by side.** CR and LF are colored and drawn with symbols so they cannot hide.
 - **Diagnostic hints.** When there is no reply, the connection is refused, or the device closes the connection, the app suggests what to check next. Hints are possible causes, not conclusions.
-- **Saved commands per device**, with a read-only mode and a "query" / "set" classification. Connection keep-alive options: TCP keepalive, and sending a query command at a fixed interval.
+- **Saved commands per device.** Connection keep-alive options: TCP keepalive, and sending a saved command at a fixed interval.
 - **A virtual device with real-equipment quirks**: a limit on simultaneous connections, a connection closed after a time without commands, a device that stops answering, a slow start-up, commands that must not come too fast. **Fault injection** while it runs: drop the next replies, delay replies, stop responding, close all connections.
 - **A transparent relay** that records both directions and drafts a definition. The draft writes only what the recording shows for certain and lists everything it could not decide; it is a starting point, not a guarantee.
 - **UDP as well as TCP** in all three tabs (one item per datagram). UDP has no connection and no feedback, so the program says what it cannot know.
@@ -78,12 +78,8 @@ The screen is available in Japanese and English.
 
 ## Staying safe with real equipment
 
-- **Query or set.** Every saved command has a kind. A **query** reads the device without changing it. A **set** command may change it. If unsure, choose **set**.
-- **No confirmation when sending.** Pressing **Send** is the confirmation, so check the bytes shown under the input box before you press it. A **set** command and raw input are sent at once, just like a query.
-- **Saving a "query" is confirmed**, in a dialog owned by the program itself that lists the exact bytes, because read-only mode lets queries through. Changing the text of a saved query asks again. Turning read-only mode **off** asks for confirmation too. Both dialogs default to **Cancel**.
-- **Read-only mode** allows only saved queries; it blocks set commands and raw input.
-- A command longer than **256 bytes** cannot be saved as a query, because the confirmation could not show it in full.
-- **Repeat sending** accepts queries only, never starts while read-only mode is on, and stops when the connection ends. TCP keepalive is a different thing (the operating system detects a lost peer); a device may not count it as activity.
+- **No confirmation when sending.** Pressing **Send** is the confirmation, so check the bytes shown under the input box before you press it. Saved commands and raw input are sent at once.
+- **Repeat sending** sends a saved command again and again until you stop it (and it stops when the connection ends), so be careful with a command that changes the device. TCP keepalive is a different thing (the operating system detects a lost peer); a device may not count it as activity.
 - **The virtual device** listens only on `127.0.0.1` unless you choose the whole network; that choice asks for confirmation and keeps a warning visible, because other machines can then connect. Connections, message sizes and rates are limited.
 - **UDP** adds one more risk: a sender address can be forged, so listening on the whole network could be used to send answers to a third party. The confirmation says so and the program limits what it sends. The controller only sends UDP to private addresses, never to broadcast or multicast addresses.
 - **The TCP controller connects to any address you type**, because real equipment can be anywhere on your network. The UDP controller and the relay only reach your own network (private addresses). Whatever the program shows on the screen is treated as untrusted text. See [SECURITY.md](SECURITY.md) for how the screen is isolated.

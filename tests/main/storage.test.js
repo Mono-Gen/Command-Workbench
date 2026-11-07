@@ -91,6 +91,37 @@ test('save then load round-trips, with no temp file left behind', async (t) => {
   assert.deepEqual(await fsp.readdir(dir), [FILE_NAME]);
 });
 
+test('a 0.1.0 command file keeps legacy kind values and derives reply defaults when saved again', async (t) => {
+  const dir = await withTempDir(t);
+  const file = path.join(dir, FILE_NAME);
+  const legacy = {
+    schemaVersion: 1,
+    devices: [{
+      name: 'Legacy device',
+      host: '192.0.2.20',
+      port: 23,
+      commands: [
+        { name: 'Read', text: 'READ[CR]', mode: 'text', appendTerminator: 'none', kind: 'query' },
+        { name: 'Write', text: 'WRITE[CR]', mode: 'text', appendTerminator: 'none', kind: 'set' },
+      ],
+    }],
+  };
+  await fsp.writeFile(file, JSON.stringify(legacy));
+  const store = createCommandStore({ fs: fsp, dir, sleep: noSleep });
+
+  const loaded = await store.load();
+  assert.equal(loaded.status, 'ok');
+  assert.deepEqual(
+    loaded.data.devices[0].commands.map((command) => [command.kind, command.expectsReply]),
+    [['query', true], ['set', false]],
+  );
+  assert.deepEqual(await store.save(loaded.data), { ok: true });
+
+  const saved = JSON.parse(await fsp.readFile(file, 'utf8'));
+  assert.deepEqual(saved.devices[0].commands.map((command) => command.kind), ['query', 'set']);
+  assert.deepEqual(saved.devices[0].commands.map((command) => command.expectsReply), [true, false]);
+});
+
 test('load: accepts a UTF-8 BOM (files edited in Notepad)', async (t) => {
   const dir = await withTempDir(t);
   await fsp.writeFile(path.join(dir, FILE_NAME), `﻿${JSON.stringify(sampleData())}`);

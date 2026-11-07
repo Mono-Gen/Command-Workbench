@@ -33,7 +33,7 @@ test('exports schema version 1 and an empty store that validates', () => {
   assert.equal(validateStore(emptyStore()).ok, true);
 });
 
-test('accepts a valid store and fills expectsReply from kind when missing', () => {
+test('accepts legacy and kind-less commands and applies the specified expectsReply defaults', () => {
   const result = validateStore(validStore());
   assert.equal(result.ok, true);
   const [query, set] = result.data.devices[0].commands;
@@ -42,6 +42,21 @@ test('accepts a valid store and fills expectsReply from kind when missing', () =
   const setDefault = validStore();
   delete setDefault.devices[0].commands[1].expectsReply;
   assert.equal(validateStore(setDefault).data.devices[0].commands[1].expectsReply, false, 'a set is silent by default');
+
+  const kindLess = validStore();
+  delete kindLess.devices[0].commands[0].kind;
+  const normalized = validateStore(kindLess).data.devices[0].commands[0];
+  assert.equal(normalized.expectsReply, true, 'a kind-less command expects a reply by default');
+  assert.equal(Object.hasOwn(normalized, 'kind'), false, 'normalization does not invent kind');
+
+  const explicit = validStore();
+  explicit.devices[0].commands[0].expectsReply = false;
+  explicit.devices[0].commands[1].expectsReply = true;
+  assert.deepEqual(
+    validateStore(explicit).data.devices[0].commands.map((command) => command.expectsReply),
+    [false, true],
+    'an explicit boolean wins for both legacy kinds',
+  );
 });
 
 test('does not mutate its input and returns a copy', () => {
@@ -149,7 +164,6 @@ test('command fields: name, text, mode, appendTerminator, kind, expectsReply', (
     ['mode', 'binary', 'invalid_mode'],
     ['appendTerminator', 'cr+lf', 'invalid_terminator'],
     ['kind', 'unknown', 'invalid_kind'],
-    ['kind', undefined, 'invalid_kind'],
     ['expectsReply', 'yes', 'invalid_expects_reply'],
   ];
   for (const [field, value, code] of cases) {
@@ -162,6 +176,16 @@ test('command fields: name, text, mode, appendTerminator, kind, expectsReply', (
   boundary.devices[0].commands[0].text = 'A'.repeat(65536);
   boundary.devices[0].commands[0].name = 'x'.repeat(100);
   assert.equal(validateStore(boundary).ok, true);
+
+  // A key whose value is undefined does not survive JSON, so it counts as "no kind" (a null does not).
+  const explicitlyUndefined = validStore();
+  explicitlyUndefined.devices[0].commands[0].kind = undefined;
+  const checkedUndefined = validateStore(explicitlyUndefined);
+  assert.equal(checkedUndefined.ok, true);
+  assert.equal(Object.hasOwn(checkedUndefined.data.devices[0].commands[0], 'kind'), false);
+  const explicitlyNull = validStore();
+  explicitlyNull.devices[0].commands[0].kind = null;
+  assert.deepEqual(codes(validateStore(explicitlyNull)), ['devices[0].commands[0].kind:invalid_kind']);
 });
 
 test('every enum value is accepted', () => {

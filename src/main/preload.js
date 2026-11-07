@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld('workbench', Object.freeze({
   parsePreview: call('parsePreview'),
   connect: call('connect'),
   disconnect: call('disconnect'),
-  setReadOnly: call('setReadOnly'),
   setKeepAlive: call('setKeepAlive'),
   sendSaved: call('sendSaved'),
   sendDirect: call('sendDirect'),

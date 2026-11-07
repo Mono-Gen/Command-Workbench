@@ -149,7 +149,7 @@ function buildApp() {
   const { store, dataInfo } = createStoreForApp();
   const connection = createConnection({ onEvent: (event) => service.handleConnectionEvent(event) });
   const udpEndpoint = createUdpEndpoint({ onEvent: (event) => service.handleConnectionEvent(event) });
-  service = createService({ connection, udp: udpEndpoint, store, confirm: confirmSend, emit: emitToRenderer, dataInfo });
+  service = createService({ connection, udp: udpEndpoint, store, emit: emitToRenderer, dataInfo });
   const deviceServer = createDeviceServer({ onEvent: (event) => deviceService.handleServerEvent(event) });
   // `samples/` next to the program (where the commands are saved); the bundled ones otherwise.
   definitionsDir = dataInfo.ok ? path.join(dataInfo.dir, 'samples') : null;

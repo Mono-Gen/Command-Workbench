@@ -1,5 +1,5 @@
-// The service with a UDP endpoint beside the TCP connection: the same rules (read-only, query/set,
-// guard at write time, periodic sending) must hold, and UDP must not inherit TCP assumptions.
+// The service with a UDP endpoint beside the TCP connection: sending, connection guards and
+// periodic behavior must hold without inheriting TCP assumptions.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fsp = require('node:fs/promises');
@@ -78,16 +78,13 @@ test('state names the transport in use', async (t) => {
   assert.equal(ctx.service.getState().transport, 'udp');
 });
 
-test('sending works over UDP with the same rules: read-only blocks set, queries pass', async (t) => {
+test('saved commands and direct input are sent over UDP', async (t) => {
   const ctx = await setup(t);
   await udpReady(ctx);
   assert.equal((await ctx.service.sendSaved({ device: 'Lamp', command: 'Turn on' })).ok, true);
-  assert.deepEqual(sentTexts(ctx), ['ON\r']);
-  await ctx.service.setReadOnly(true);
-  assert.deepEqual((await ctx.service.sendSaved({ device: 'Lamp', command: 'Turn on' })), { ok: false, code: 'blocked', reason: 'read_only_blocks_set' });
   assert.equal((await ctx.service.sendSaved({ device: 'Lamp', command: 'Get state' })).ok, true);
-  assert.equal(sentTexts(ctx).length, 2);
-  assert.equal((await ctx.service.sendDirect({ text: 'RAW', mode: 'text', appendTerminator: 'cr' })).code, 'blocked');
+  assert.equal((await ctx.service.sendDirect({ text: 'RAW', mode: 'text', appendTerminator: 'cr' })).ok, true);
+  assert.deepEqual(sentTexts(ctx), ['ON\r', 'STATE?\r', 'RAW\r']);
 });
 
 test('a received datagram is shown as its own message, with the sender when it is not the target', async (t) => {
@@ -127,21 +124,6 @@ test('periodic sending works over UDP and stops when the socket is lost', async 
   ctx.udpSockets[0].emit('error', Object.assign(new Error('x'), { code: 'ECONNRESET' }));
   await flush();
   assert.equal(ctx.service.getState().periodicRunning, false, 'a lost socket stops the repeating sender');
-});
-
-test('a write that waits in the queue is stopped when read-only is switched on before it goes out', async (t) => {
-  const ctx = await setup(t);
-  await udpReady(ctx);
-  ctx.udpSockets[0].heldSends = [];
-  const first = ctx.service.sendDirect({ text: 'A', mode: 'text', appendTerminator: 'none' });
-  const second = ctx.service.sendSaved({ device: 'Lamp', command: 'Turn on' });
-  await flush();
-  await ctx.service.setReadOnly(true);
-  ctx.udpSockets[0].heldSends.shift()(null);
-  // `first` is raw input (unclassified): it was allowed when queued, but read-only is now on.
-  const results = await Promise.all([first, second]);
-  assert.equal(results[1].code, 'blocked');
-  assert.equal(sentTexts(ctx).length <= 1, true);
 });
 
 test('TCP and UDP cannot run at the same time, and the other kind works after a disconnect', async (t) => {
@@ -207,4 +189,3 @@ test('a very large datagram is shown only in part, with its real size', async (t
   ctx.udpSockets[0].emit('message', Buffer.from('small'), { address: '10.0.0.20', port: 5000 });
   assert.equal('shown' in ctx.channel('log')[1], false);
 });
-

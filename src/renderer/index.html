@@ -65,10 +65,6 @@
         <input id="accept-any" type="checkbox">
         <span data-i18n="conn.acceptAny"></span>
       </label>
-      <label class="check" data-i18n-title="conn.readonly.help">
-        <input id="readonly" type="checkbox">
-        <span data-i18n="conn.readonly"></span>
-      </label>
     </div>
   </header>
 
@@ -409,12 +405,6 @@
           </select>
         </label>
       </div>
-      <fieldset>
-        <legend data-i18n="commands.kind"></legend>
-        <label class="check"><input type="radio" name="command-kind" value="set" checked> <span data-i18n="commands.kind.set"></span></label>
-        <label class="check"><input type="radio" name="command-kind" value="query"> <span data-i18n="commands.kind.query"></span></label>
-        <p class="muted small-text" data-i18n="commands.kind.help"></p>
-      </fieldset>
       <label class="check"><input id="command-expects-reply" type="checkbox" checked> <span data-i18n="composer.expectsReply"></span></label>
       <p class="muted small-text" data-i18n="composer.expectsReply.help"></p>
       <p id="command-error" class="error" role="alert"></p>

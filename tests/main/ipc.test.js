@@ -9,7 +9,7 @@ function fakeService() {
   const calls = [];
   const record = (name) => (...args) => { calls.push([name, ...args]); return { ok: true, from: name }; };
   const service = {};
-  for (const name of ['init', 'getState', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setReadOnly', 'setKeepAlive', 'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic']) {
+  for (const name of ['init', 'getState', 'saveData', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive', 'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic']) {
     service[name] = record(name);
   }
   return { service, calls };
@@ -24,8 +24,9 @@ test('exposes exactly the documented channels', () => {
     'relayClearRecording', 'relayDraft', 'relayLoadRecording', 'relaySaveDraft', 'relaySaveRecording', 'relayStart',
     'relayState', 'relayStop', 'relayUseDraft',
     'saveData', 'sendDirect', 'sendSaved',
-    'setKeepAlive', 'setLocale', 'setReadOnly', 'startPeriodic', 'stopPeriodic',
+    'setKeepAlive', 'setLocale', 'startPeriodic', 'stopPeriodic',
   ]);
+  assert.equal(CHANNELS.includes('setReadOnly'), false);
 });
 
 test('connect: validates target types, timeout and keepalive; passes only known fields', async () => {
@@ -92,13 +93,9 @@ test('startPeriodic: interval must be an integer; names must be strings', async 
   }
 });
 
-test('setReadOnly needs a real boolean; setKeepAlive validates both fields', async () => {
+test('setKeepAlive validates both fields', async () => {
   const { service, calls } = fakeService();
   const handlers = createIpcHandlers({ service, setLocale: () => {} });
-  await handlers.setReadOnly(true);
-  assert.deepEqual(calls.at(-1), ['setReadOnly', true]);
-  for (const bad of ['true', 1, null, undefined, {}]) assert.deepEqual(await handlers.setReadOnly(bad), INVALID);
-
   await handlers.setKeepAlive({ enabled: false, initialDelayMs: 30000 });
   assert.deepEqual(calls.at(-1), ['setKeepAlive', false, 30000]);
   for (const bad of [null, { enabled: 1 }, { enabled: true, initialDelayMs: 10 }, { enabled: true, initialDelayMs: 'x' }]) {

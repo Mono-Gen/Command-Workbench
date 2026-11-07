@@ -114,16 +114,16 @@ test('a listener that reads the history sees the event it was just notified abou
 
 // ---- periodic --------------------------------------------------------------------------
 
-test('periodic: changing the command object after start cannot turn it into a set command', async () => {
+test('periodic: changing the command object after start cannot change the snapshot', async () => {
   const clock = createFakeClock();
   const sent = [];
-  const periodic = createPeriodic({ send: async (c) => { sent.push(c.kind); return { ok: true }; }, scheduler: clock.scheduler });
+  const periodic = createPeriodic({ send: async (c) => { sent.push(c.name); return { ok: true }; }, scheduler: clock.scheduler });
   const command = { kind: 'query', name: 'x' };
   periodic.start(command, 1000);
-  command.kind = 'set';
+  command.name = 'changed';
   clock.advance(1000);
   await flush();
-  assert.deepEqual(sent, ['query'], 'the snapshot taken at start is what gets sent');
+  assert.deepEqual(sent, ['x'], 'the snapshot taken at start is what gets sent');
 });
 
 test('periodic: a restart is not blocked by a send left over from the previous run', async () => {

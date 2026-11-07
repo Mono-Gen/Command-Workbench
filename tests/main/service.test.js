@@ -20,6 +20,7 @@ const DATA = {
     commands: [
       { name: 'Get power', text: 'GETPWR[CR]', mode: 'text', appendTerminator: 'none', kind: 'query' },
       { name: 'Power on', text: 'SETPWR 1[CR]', mode: 'text', appendTerminator: 'none', kind: 'set' },
+      { name: 'Status', text: 'STATUS[CR]', mode: 'text', appendTerminator: 'none' },
       { name: 'Bad', text: '[NOPE]', mode: 'text', appendTerminator: 'none', kind: 'query' },
     ],
   }],
@@ -68,7 +69,7 @@ test('init: loads the saved data and reports the load status', async (t) => {
   const state = ctx.service.getState();
   assert.equal(state.load.status, 'ok');
   assert.equal(state.data.devices[0].name, 'Matrix');
-  assert.equal(state.readOnly, false);
+  assert.equal(Object.hasOwn(state, 'readOnly'), false);
   assert.equal(state.connectionState, 'idle');
 });
 
@@ -138,13 +139,13 @@ test('a saved query is sent at once, with no confirmation dialog', async (t) => 
   assert.deepEqual(writes(ctx), ['GETPWR\r']);
 });
 
-test('a saved set command is also sent at once, every time', async (t) => {
+test('set-kind and kind-less saved commands are sent at once', async (t) => {
   const ctx = await setup(t);
   await connected(ctx);
   await ctx.service.sendSaved({ device: 'Matrix', command: 'Power on' });
-  await ctx.service.sendSaved({ device: 'Matrix', command: 'Power on' });
+  await ctx.service.sendSaved({ device: 'Matrix', command: 'Status' });
   assert.equal(ctx.confirmCalls.length, 0);
-  assert.deepEqual(writes(ctx), ['SETPWR 1\r', 'SETPWR 1\r']);
+  assert.deepEqual(writes(ctx), ['SETPWR 1\r', 'STATUS\r']);
 });
 
 test('a parse error is reported without confirmation or sending', async (t) => {
@@ -156,29 +157,12 @@ test('a parse error is reported without confirmation or sending', async (t) => {
   assert.equal(ctx.confirmCalls.length, 0);
 });
 
-test('read-only mode: queries are allowed, set commands and raw input are blocked', async (t) => {
-  const ctx = await setup(t);
-  await connected(ctx);
-  ctx.service.setReadOnly(true);
-  assert.deepEqual(await ctx.service.sendSaved({ device: 'Matrix', command: 'Power on' }), { ok: false, code: 'blocked', reason: 'read_only_blocks_set' });
-  assert.deepEqual(await ctx.service.sendDirect({ text: 'X', mode: 'text', appendTerminator: 'none' }), { ok: false, code: 'blocked', reason: 'read_only_blocks_unclassified' });
-  assert.equal(ctx.confirmCalls.length, 0, 'blocked before any dialog');
-  assert.equal((await ctx.service.sendSaved({ device: 'Matrix', command: 'Get power' })).ok, true);
-  // Turning read-only off is confirmed in a native dialog (the fake accepts it).
-  assert.deepEqual(await ctx.service.setReadOnly(false), { ok: true, readOnly: false });
-  assert.equal((await ctx.service.sendDirect({ text: 'X', mode: 'text', appendTerminator: 'none' })).ok, true);
-});
-
-test('raw input is unclassified: the renderer cannot declare it a query to pass read-only mode', async (t) => {
+test('raw input is sent without a confirmation dialog', async (t) => {
   const ctx = await setup(t);
   await connected(ctx);
   const sent = await ctx.service.sendDirect({ text: 'X', mode: 'text', appendTerminator: 'none' });
   assert.equal(sent.ok, true);
   assert.equal(ctx.confirmCalls.length, 0, 'raw input is sent at once too');
-
-  await ctx.service.setReadOnly(true);
-  const blocked = await ctx.service.sendDirect({ text: 'X', mode: 'text', appendTerminator: 'none', kind: 'query' });
-  assert.deepEqual(blocked, { ok: false, code: 'blocked', reason: 'read_only_blocks_unclassified' });
 });
 
 test('direct input marks expectsReply (default true) in the history used for hints', async (t) => {
@@ -192,10 +176,18 @@ test('direct input marks expectsReply (default true) in the history used for hin
 
 // ---- periodic ---------------------------------------------------------------------------
 
-test('periodic: only a saved query can be repeated', async (t) => {
+test('periodic: set-kind and kind-less saved commands can both be repeated', async (t) => {
   const ctx = await setup(t);
   await connected(ctx);
-  assert.deepEqual(await ctx.service.startPeriodic({ device: 'Matrix', command: 'Power on', intervalMs: 5000 }), { ok: false, code: 'not_query' });
+  assert.deepEqual(await ctx.service.startPeriodic({ device: 'Matrix', command: 'Power on', intervalMs: 1000 }), { ok: true });
+  ctx.clock.advance(1000);
+  await flush();
+  ctx.service.stopPeriodic();
+  assert.deepEqual(await ctx.service.startPeriodic({ device: 'Matrix', command: 'Status', intervalMs: 1000 }), { ok: true });
+  ctx.clock.advance(1000);
+  await flush();
+  ctx.service.stopPeriodic();
+  assert.deepEqual(writes(ctx), ['SETPWR 1\r', 'STATUS\r']);
   assert.deepEqual(await ctx.service.startPeriodic({ device: 'Matrix', command: 'Nope', intervalMs: 5000 }), { ok: false, code: 'unknown_command' });
   assert.equal(ctx.service.getState().periodicRunning, false);
   assert.equal(ctx.confirmCalls.length, 0);
@@ -213,10 +205,9 @@ test('periodic: refused when not connected; starts without a dialog and sends on
   assert.deepEqual(writes(ctx), ['GETPWR\r']);
 });
 
-test('periodic: stops when the connection ends, on read-only, on disconnect and on shutdown', async (t) => {
+test('periodic: stops when the connection ends, on disconnect and on shutdown', async (t) => {
   for (const [name, action] of [
     ['connection ended', (ctx) => { ctx.sockets[0].emit('end'); ctx.sockets[0].emit('close', false); }],
-    ['read-only', (ctx) => ctx.service.setReadOnly(true)],
     ['disconnect', (ctx) => ctx.service.disconnect()],
     ['shutdown', (ctx) => ctx.service.shutdown()],
   ]) {
@@ -232,16 +223,16 @@ test('periodic: stops when the connection ends, on read-only, on disconnect and 
   }
 });
 
-test('periodic: the command is the saved one; changing saved data later does not alter a running timer', async (t) => {
+test('periodic: changing saved data later does not alter a running timer snapshot', async (t) => {
   const ctx = await setup(t);
   await connected(ctx);
   await ctx.service.startPeriodic({ device: 'Matrix', command: 'Get power', intervalMs: 1000 });
   const next = JSON.parse(JSON.stringify(DATA));
-  next.devices[0].commands[0].kind = 'set';
+  next.devices[0].commands[0].text = 'CHANGED[CR]';
   await ctx.service.saveData(next);
   ctx.clock.advance(1000);
   await flush();
-  assert.deepEqual(writes(ctx), ['GETPWR\r'], 'the snapshot taken at start keeps running as a query');
+  assert.deepEqual(writes(ctx), ['GETPWR\r'], 'the snapshot taken at start keeps its original text');
 });
 
 // ---- events and hints -------------------------------------------------------------------
