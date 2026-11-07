@@ -116,8 +116,14 @@ const FILE_TITLES = { recording: 'recording.json', draft: 'device-definition.jso
 
 async function saveTextWithDialog({ kind, makeText }) {
   if (!mainWindow || mainWindow.isDestroyed() || !Object.hasOwn(FILE_TITLES, kind)) return { ok: false, code: 'cancelled' };
+  // A definition is offered in the definitions folder (the one the Device tab lists), so a saved file
+  // shows up in the list after "Reload list". A recording has no such home.
+  let defaultPath = FILE_TITLES[kind];
+  if (kind === 'draft' && definitionsDir !== null && fs.existsSync(definitionsDir)) {
+    defaultPath = path.join(definitionsDir, FILE_TITLES[kind]);
+  }
   const picked = await dialog.showSaveDialog(mainWindow, {
-    defaultPath: FILE_TITLES[kind],
+    defaultPath,
     filters: [{ name: 'JSON', extensions: ['json'] }],
   });
   if (picked.canceled || !picked.filePath) return { ok: false, code: 'cancelled' };
