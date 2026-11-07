@@ -1,7 +1,7 @@
 // Main process entry point: creates the window and wires the pieces together.
 // The rules for talking to a device live in service.js; this file only connects Electron to it.
 const {
-  app, BrowserWindow, Menu, dialog, ipcMain, protocol, session,
+  app, BrowserWindow, Menu, dialog, ipcMain, protocol, screen, session,
 } = require('electron');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
@@ -209,9 +209,11 @@ if (!gotLock) {
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
 
     buildApp();
+    // Tall enough that nothing is cut off at the start, but never taller than the screen's work area.
+    const workHeight = screen.getPrimaryDisplay().workAreaSize.height;
     mainWindow = new BrowserWindow({
       width: 1100,
-      height: 720,
+      height: Math.min(800, workHeight),
       minWidth: 820,
       minHeight: 520,
       // The window icon (the program file carries its own, set when it is built).

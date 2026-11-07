@@ -96,7 +96,8 @@
   'warn.terminator_doubled': 'The input already ends with a terminator (CR/LF) and an automatic terminator is also selected, so the terminator will be sent twice.',
 
   'periodic.title': 'Repeat sending',
-  'periodic.help': 'For devices that close a quiet connection: sends a saved command at a fixed interval (off by default). It keeps sending until you stop it, so do not choose a command that changes the device. What counts as activity differs between devices, so check the device documentation; this is not guaranteed to keep a connection open. It is different from TCP keepalive.',
+  'periodic.help': 'For devices that close a quiet connection: sends a saved command at a fixed interval. It keeps sending until you stop it, so do not choose a command that changes the device.',
+  'periodic.help.detail': 'What counts as activity differs between devices, so check the device documentation. This is not guaranteed to keep a connection open. It is different from TCP keepalive.',
   'periodic.interval': 'Interval (seconds)',
   'periodic.start': 'Start',
   'periodic.stop': 'Stop',
