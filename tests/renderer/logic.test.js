@@ -155,6 +155,32 @@ test('parseTablePaste: a long cell is handled quickly (no pathological backtrack
   assert.ok(Date.now() - started < 1000);
 });
 
+test('findNonAscii: plain ASCII (including notation, tab and CR/LF) has nothing to warn about', () => {
+  assert.deepEqual(L.findNonAscii('PWR 1[CR]\t~{}\r\n'), { items: [], total: 0 });
+  assert.deepEqual(L.findNonAscii(''), { items: [], total: 0 });
+});
+
+test('findNonAscii: full-width letters, a full-width space, a no-break space and a zero-width space are named by kind, with 1-based positions', () => {
+  // U+FF30 U+FF37 U+FF32 U+FF1F are the full-width forms of "PWR?"; U+3000 is the ideographic space.
+  const found = L.findNonAscii('ＰＷＲ？　x', { limit: 10 });
+  assert.deepEqual(found.items.map((i) => [i.position, i.kind, i.code]), [
+    [1, 'fullwidth', 'FF30'], [2, 'fullwidth', 'FF37'], [3, 'fullwidth', 'FF32'], [4, 'fullwidth', 'FF1F'], [5, 'space', '3000'],
+  ]);
+  assert.equal(found.total, 5);
+  assert.deepEqual(L.findNonAscii('A B').items, [{ position: 2, char: ' ', code: '00A0', kind: 'space' }]);
+  assert.deepEqual(L.findNonAscii('A​B').items.map((i) => i.kind), ['invisible']);
+  assert.deepEqual(L.findNonAscii('あ').items, [{ position: 1, char: 'あ', code: '3042', kind: 'other' }]);
+});
+
+test('findNonAscii: positions count characters, not UTF-16 units; the list is capped but the total is not', () => {
+  // The emoji is one character (two UTF-16 units), so the ideographic space after it is the 3rd character.
+  assert.deepEqual(L.findNonAscii('A\u{1F600}　').items.map((i) => [i.position, i.kind]), [[2, 'other'], [3, 'space']]);
+  const many = L.findNonAscii('あ'.repeat(10));
+  assert.equal(many.items.length, 3, 'three are listed by default');
+  assert.equal(many.total, 10);
+  assert.equal(L.findNonAscii('あ'.repeat(10), { limit: 1 }).items.length, 1);
+});
+
 test('parseTablePaste: only the first two columns are used, and notation inside a cell is kept', () => {
   assert.deepEqual(L.parseTablePaste('A[TAB]B\tC\tignored'), { rows: [{ command: 'A[TAB]B', reply: 'C' }], stripped: 0 });
 });

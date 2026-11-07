@@ -369,6 +369,16 @@
       box.appendChild(renderCells(result.rows));
       box.appendChild(el('div', 'muted', t('composer.preview.bytes', { n: result.length })));
       for (const code of result.warnings) S.previewMessages.push({ level: 'warn', text: t(`warn.${code}`) });
+      // Not an error: a device that takes UTF-8 gets it. The warning is for the common slip of
+      // full-width letters or spaces copied from a manual, which look like ASCII but are not.
+      if (spec.mode === 'text') {
+        const found = L.findNonAscii(spec.text);
+        if (found.total > 0) {
+          const parts = found.items.map((item) => t(`warn.non_ascii.${item.kind}`, { position: item.position, char: item.char, code: item.code }));
+          if (found.total > found.items.length) parts.push(t('warn.non_ascii.more', { count: found.total - found.items.length }));
+          S.previewMessages.push({ level: 'warn', text: t('warn.non_ascii', { items: parts.join(', ') }) });
+        }
+      }
     } else if (Array.isArray(result.errors)) {
       for (const error of result.errors) S.previewMessages.push({ level: 'error', text: t(`parse.${error.code}`, { position: error.position }) });
     } else {

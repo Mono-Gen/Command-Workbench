@@ -72,7 +72,7 @@ The screen is available in Japanese and English.
 
 - Write several hex bytes with spaces between them: `0x0D 0x0A`. `0x0D0x0A` is rejected on purpose.
 - Choose **HEX** as the input format to type raw bytes such as `47 45 54 50 57 52 0D`.
-- The **ASCII** input format also takes the names and escapes above. Characters outside ASCII (Japanese, for example) are sent as **UTF-8** bytes; a device that expects another encoding (such as Shift_JIS) needs the bytes typed in **HEX**. The bytes shown under the input box are exactly what is sent.
+- The **ASCII (text)** input format also takes the names and escapes above. Characters outside ASCII (Japanese, for example) are sent as **UTF-8** bytes, with a warning that shows where they are (full-width letters and spaces copied from a manual look like ASCII but are not); a device that expects another encoding (such as Shift_JIS) needs the bytes typed in **HEX**. The bytes shown under the input box are exactly what is sent.
 - **Terminator added automatically** appends CR, LF or CR+LF. If your input already ends with a terminator and an automatic one is also selected, a warning is shown, because the terminator would be sent twice.
 - Anything the notation cannot read is explained with its position instead of being guessed.
 

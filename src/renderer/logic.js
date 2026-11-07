@@ -153,5 +153,33 @@
     return { rows, stripped };
   }
 
-  return { parseTablePaste, visibleControls, formatClock, hexLine, charLine, nextDefaultName, withDevice, withoutDevice, withCommand, withoutCommand, describeFailure };
+  // Characters of a text-mode input that are not ASCII. They are still sent (as UTF-8 bytes), but many
+  // devices only understand ASCII, and text copied from a manual often carries full-width letters or
+  // spaces that look like ASCII on screen. `position` counts characters from 1, like the parse errors.
+  // kind: 'space' (spaces that are not U+0020), 'invisible' (zero-width), 'fullwidth' (full-width forms
+  // of ASCII, U+FF01-U+FF5E) or 'other'.
+  function classifyNonAscii(code) {
+    if (code === 0x3000 || code === 0x00a0 || (code >= 0x2000 && code <= 0x200a) || code === 0x202f || code === 0x205f) return 'space';
+    if ((code >= 0x200b && code <= 0x200d) || code === 0xfeff) return 'invisible';
+    if (code >= 0xff01 && code <= 0xff5e) return 'fullwidth';
+    return 'other';
+  }
+
+  function findNonAscii(text, { limit = 3 } = {}) {
+    const items = [];
+    let total = 0;
+    let position = 0;
+    for (const char of String(text)) {
+      position += 1;
+      const code = char.codePointAt(0);
+      if (code <= 0x7f) continue;
+      total += 1;
+      if (items.length < limit) {
+        items.push({ position, char, code: code.toString(16).toUpperCase().padStart(4, '0'), kind: classifyNonAscii(code) });
+      }
+    }
+    return { items, total };
+  }
+
+  return { findNonAscii, parseTablePaste, visibleControls, formatClock, hexLine, charLine, nextDefaultName, withDevice, withoutDevice, withCommand, withoutCommand, describeFailure };
 }));

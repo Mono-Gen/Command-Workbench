@@ -73,7 +73,7 @@
   'log.bytes': '{n} バイト',
 
   'composer.mode': '入力形式',
-  'composer.mode.text': 'ASCII',
+  'composer.mode.text': 'ASCII(テキスト)',
   'composer.mode.hex': 'HEX(16進)',
   'composer.terminator': '末尾に自動で付ける終端文字',
   'composer.terminator.help': 'コマンドの終わりを機器に知らせる印(資料の「デリミタ」)',
@@ -93,6 +93,12 @@
   'composer.preview.bytes': '{n} バイト',
   'composer.help.title': '書き方',
   'composer.help.body': '[CR] [LF] [CRLF] [NUL] [STX] [ETX] [ACK] [NAK] [ESC] [SP] などの名前、0x0D のような16進、\\r \\n \\t \\\\ のエスケープが使えます。16進を続けて書くときは 0x0D 0x0A のように空白で区切ってください。',
+  'warn.non_ascii': 'ASCII 以外の文字が含まれています: {items}。UTF-8 のバイト列として送られるので、機器によっては受け付けません。マニュアルからコピーした文字には、全角の英数字や空白が混ざることがあります。',
+  'warn.non_ascii.space': '{position} 文字目に、半角ではない空白(U+{code})',
+  'warn.non_ascii.invisible': '{position} 文字目に、見えない文字(U+{code})',
+  'warn.non_ascii.fullwidth': '{position} 文字目に、全角の「{char}」',
+  'warn.non_ascii.other': '{position} 文字目に、「{char}」(U+{code})',
+  'warn.non_ascii.more': 'ほか {count} 文字',
   'warn.terminator_doubled': '入力が既に終端(CR/LF)で終わっています。「自動で付ける終端」も選ばれているので、終端が二重に送られます。',
 
   'periodic.title': '定期送信',

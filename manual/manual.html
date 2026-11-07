@@ -174,7 +174,7 @@
 
 <h3>Input format</h3>
 <ul>
-  <li><strong>ASCII</strong> (default): the notation in the table works. Characters outside ASCII, such as Japanese, are sent as UTF-8 bytes. For a device that expects Shift_JIS or another encoding, give the bytes directly in HEX.</li>
+  <li><strong>ASCII (text)</strong> (default): the notation in the table works. Characters outside ASCII, such as Japanese, are sent as UTF-8 bytes (they are sent, but a warning shows where they are, so that full-width letters or spaces copied from a manual do not go unnoticed). For a device that expects Shift_JIS or another encoding, give the bytes directly in HEX.</li>
   <li><strong>HEX</strong>: type raw bytes, such as <code>47 45 54 50 57 52 0D</code>.</li>
 </ul>
 <p>When you write several hexadecimal values in a row, <strong>separate them with spaces</strong>, as in <code>0x0D 0x0A</code>. <code>0x0D0x0A</code> is deliberately an error, to prevent misreading.</p>
