@@ -127,7 +127,7 @@
     </figure>
   </li>
   <li>
-    <p><strong>Break it on purpose.</strong> Under <span class="ui">Fault injection</span> tick <span class="ui">Stop responding (mute)</span>, then send <code>PWR?[CR]</code> again from the Controller tab. No reply comes. If <span class="ui">Expect a reply</span> is ticked, after about three seconds <span class="ui">Diagnostic hints</span> on the right shows "No reply" and what to check. This is what it looks like when a real device goes quiet. Untick the box when you have seen it.</p>
+    <p><strong>Break it on purpose.</strong> Under <span class="ui">Fault injection</span> tick <span class="ui">Stop responding (mute)</span>, then send <code>PWR?[CR]</code> again from the Controller tab. No reply comes. After about three seconds <span class="ui">Diagnostic hints</span> on the right shows "No reply" and what to check. This is what it looks like when a real device goes quiet.</p>
   </li>
 </ol>
 
@@ -201,7 +201,7 @@
   <li>Type a command and check <span class="ui">Bytes to send</span>.</li>
   <li>Press <span class="ui">Send</span> (or Enter). <strong>It is sent immediately.</strong> There is no confirmation screen, so make a habit of checking the bytes before you press it.</li>
 </ol>
-<p>When <span class="ui">Expect a reply</span> is ticked and no reply comes within about three seconds, a hint appears. Untick it when you send to a device that stays silent on success.</p>
+<p>When no reply comes within about three seconds, a hint appears. For a command that the device accepts silently, tick <span class="ui">This command gets no reply</span> in the <span class="ui">Save as command</span> dialog. When you send from the saved command, no hint appears if there is no reply.</p>
 
 <h3>Saving commands for reuse</h3>
 <p>Press <span class="ui">Save as command</span> and give it a name. Saved commands appear under <span class="ui">Commands</span> on the left and can be sent with one press of <span class="ui">Send</span>. Commands are saved per device, in <code>workbench-commands.json</code> in the same folder as the program.</p>
@@ -512,6 +512,8 @@
   <dd>A way of sending separate chunks of data (datagrams) without making a connection. Delivery is not guaranteed.</dd>
   <dt>Datagram</dt>
   <dd>The chunk of data sent in one UDP send. In this tool, one datagram is one command or one reply.</dd>
+  <dt>Reply (response)</dt>
+  <dd>The data a device sends back after you send a command: an answer to "what is your status?", an "accepted" notice, and so on.</dd>
   <dt>Terminator</dt>
   <dd>The character that marks the end of a command: CR, LF or both (CR+LF). Each device has its own.</dd>
   <dt>CR / LF</dt>

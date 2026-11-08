@@ -255,7 +255,7 @@
     $('command-text').value = existing ? existing.text : fromComposer.text;
     $('command-mode').value = existing ? existing.mode : fromComposer.mode;
     $('command-terminator').value = existing ? existing.appendTerminator : fromComposer.appendTerminator;
-    $('command-expects-reply').checked = existing ? existing.expectsReply !== false : fromComposer.expectsReply;
+    $('command-silent').checked = existing ? existing.expectsReply === false : false;
     $('command-error').textContent = '';
     $('command-dialog').showModal();
     $('command-name').select();
@@ -269,7 +269,7 @@
       text: $('command-text').value,
       mode: $('command-mode').value,
       appendTerminator: $('command-terminator').value,
-      expectsReply: $('command-expects-reply').checked,
+      expectsReply: !$('command-silent').checked,
     };
     const result = await commit(L.withCommand(S.data, device.name, S.editingCommand, command));
     if (!result.ok) {
@@ -384,7 +384,7 @@
 
   async function sendDirect() {
     if (S.sending) return;
-    const spec = { ...composerSpec(), expectsReply: $('expects-reply').checked };
+    const spec = { ...composerSpec(), expectsReply: true };
     if (spec.text === '') {
       $('input').focus();
       return;
@@ -549,7 +549,7 @@
     });
     $('send').addEventListener('click', sendDirect);
     $('save-command').addEventListener('click', () => {
-      const spec = { ...composerSpec(), expectsReply: $('expects-reply').checked };
+      const spec = { ...composerSpec(), expectsReply: true };
       if (spec.text === '') {
         $('input').focus();
         return;
