@@ -368,7 +368,7 @@
   'relay.status.runningUdp': 'Relaying UDP {host}:{port}',
   'relay.usage': 'Point the controller at this relay: {host}:{port}. The traffic is passed on unchanged to the target {target}.',
   'relay.usageUdp': 'Point the controller at this relay: {host}:{port} (UDP). Each datagram is passed on unchanged to the target {target}, and the answers come back the same way.',
-  'relay.lanWarningUdp': 'Listening on the whole network. Other machines on the same network can send datagrams to the target device without authentication, and the sender address of a datagram can be forged, so answers may be sent to a third party (the amount is limited). Use it only on a network you trust.',
+  'relay.lanWarningUdp': 'Listening on the whole network. Other machines on the same network can send datagrams to the target device without authentication, and the sender address of a datagram can be forged, so replies may be sent to a third party (the amount is limited). Use it only on a network you trust.',
   'relay.privacy': 'A recording can contain passwords, settings and other content exactly as it was sent. Check it before you share a saved file.',
   'relay.lanWarning': 'Listening on the whole network. Other machines on the same network can send commands to the target device without authentication. Use it only on a network you trust.',
   'relay.rec.title': 'Recording',
@@ -469,7 +469,7 @@
   'relay.closeReason.idle': 'no datagram from the controller for a while',
   'relay.refusedReason.limit': 'connection limit',
   'relay.refusedReason.rate_limit': 'too many connections',
-  'relay.refusedReason.reply_rate_limit': 'answer budget used up (the answer is discarded)',
+  'relay.refusedReason.reply_rate_limit': 'reply budget used up (the reply is discarded)',
   'relay.refusedReason.pending_overflow': 'too many datagrams while connecting',
   'relay.fullReason.payload_limit': 'data size limit',
   'relay.fullReason.event_limit': 'item count limit',
@@ -639,7 +639,7 @@
 
   // ---- Add the table's commands to the controller's saved commands ----
   'tbl.import.summary': 'Add to the controller\'s saved commands…',
-  'tbl.import.help': 'Also saves the table\'s commands as saved commands of the controller. When the controller sends one, the virtual device made from this table answers as the table says. A command whose name already exists in the target device is skipped, never overwritten.',
+  'tbl.import.help': 'Also saves the table\'s commands as saved commands of the controller. When the controller sends one, the virtual device made from this table replies as the table says. A command whose name already exists in the target device is skipped, never overwritten.',
   'tbl.import.target': 'Target device',
   'tbl.import.new': '(save as a new device)',
   'tbl.import.newName': 'Device name',

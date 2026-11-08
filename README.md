@@ -4,7 +4,7 @@
 
 A Windows desktop tool for sending control commands to AV and other network devices, and reading what they answer. It shows you the exact bytes before anything is sent, explains what to check when a device stays silent, and includes a virtual device to practice against when you have no real equipment.
 
-> **Status: early version (0.2.0).** Everything described below works.
+> **Status: early version (0.3.0).** Everything described below works.
 
 ![The controller: commands sent to a device, with the exact bytes and the replies](manual/images/en-04-controller-log.png)
 
@@ -24,7 +24,7 @@ It does not emulate any specific manufacturer's or model's device, and it is **n
 
 ## Download and start
 
-The program is a single Windows file; there is nothing to install. Extract the ZIP to a folder you can write to and run `Command Workbench-0.2.0-portable.exe`. A first start can take several seconds. The ZIP also holds this README (English and Japanese), the **manual** (`manual/manual.html`, with screenshots; GitHub shows HTML as source, so open it from the ZIP or a clone), `docs/` (the guides) and `samples/` (sample definitions you can read and copy).
+The program is a single Windows file; there is nothing to install. Extract the ZIP to a folder you can write to and run `Command Workbench-0.3.0-portable.exe`. A first start can take several seconds. The ZIP also holds this README (English and Japanese), the **manual** (`manual/manual.html`, with screenshots; GitHub shows HTML as source, so open it from the ZIP or a clone), `docs/` (the guides) and `samples/` (sample definitions you can read and copy).
 
 ## Your first three minutes (no equipment needed)
 
@@ -56,7 +56,7 @@ To use a real device, enter its IP address and port instead. Read "Staying safe 
 
 The screen is available in Japanese and English.
 
-**Not yet:** login or challenge-response handshakes; UDP broadcast, multicast and IPv6; drafting a definition from a UDP recording.
+**Not yet:** login or challenge-response handshakes; UDP broadcast and multicast; drafting a definition from a UDP recording. IPv6 is not supported.
 
 ## Notation
 
@@ -81,7 +81,7 @@ The screen is available in Japanese and English.
 - **No confirmation when sending.** Pressing **Send** is the confirmation, so check the bytes shown under the input box before you press it. Saved commands and raw input are sent at once.
 - **Repeat sending** sends a saved command again and again until you stop it (and it stops when the connection ends), so be careful with a command that changes the device. TCP keepalive is a different thing (the operating system detects a lost peer); a device may not count it as activity.
 - **The virtual device** listens only on `127.0.0.1` unless you choose the whole network; that choice asks for confirmation and keeps a warning visible, because other machines can then connect. Connections, message sizes and rates are limited.
-- **UDP** adds one more risk: a sender address can be forged, so listening on the whole network could be used to send answers to a third party. The confirmation says so and the program limits what it sends. The controller only sends UDP to private addresses, never to broadcast or multicast addresses.
+- **UDP** adds one more risk: a sender address can be forged, so listening on the whole network could be used to send replies to a third party. The confirmation says so and the program limits what it sends. The controller only sends UDP to private addresses, never to broadcast or multicast addresses.
 - **The TCP controller connects to any address you type**, because real equipment can be anywhere on your network. The UDP controller and the relay only reach your own network (private addresses). Whatever the program shows on the screen is treated as untrusted text. See [SECURITY.md](SECURITY.md) for how the screen is isolated.
 - **The relay** only forwards to private addresses and listens only on this PC unless you choose the whole network (confirmation naming the target, warning kept visible). Recordings can contain passwords: check a saved file before you share it.
 - Everything above is checked by the program's main process, not by the screen.

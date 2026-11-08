@@ -45,14 +45,14 @@ Add `"transport": "udp"` to a definition (see [Writing a device definition](devi
 - A UDP definition cannot have a `greeting`: with no connection there is nothing to send it on.
 - An empty datagram is ignored.
 
-**Listening on the whole network.** A UDP sender address can be **forged**, so another machine could make the virtual device send answers to a third party. The confirmation says so, and the program limits what it sends (about 32 KiB per second in total and 8 KiB per second per source) and what it accepts. This **reduces** the effect; it cannot remove it. Use the whole-network setting only on a network you trust.
+**Listening on the whole network.** A UDP sender address can be **forged**, so another machine could make the virtual device send replies to a third party. The confirmation says so, and the program limits what it sends (about 32 KiB per second in total and 8 KiB per second per source) and what it accepts. This **reduces** the effect; it cannot remove it. Use the whole-network setting only on a network you trust.
 
 ## Relay tab
 
 Choose **UDP** for the communication, enter the target (a device on your own network) and start. Point the controller at the relay.
 
 - Every datagram from the controller is passed to the device **unchanged and in one piece**, and every datagram from the device is passed back to the controller that is talking to it.
-- Each controller (address and port) gets its own **session** with its own connection to the device, so answers always return to the right controller. At most 8 sessions at a time and 10 new ones per second.
+- Each controller (address and port) gets its own **session** with its own connection to the device, so replies always return to the right controller. At most 8 sessions at a time and 10 new ones per second.
 - A session ends **60 seconds after the controller last sent something** (traffic from the device does not extend it), and in any case after one hour. A new datagram simply starts a new session.
 - The recording has **one item per datagram** and shows the kind of traffic (UDP). Like TCP recordings it contains no address or time of day. An empty datagram is passed on but not recorded. The recording holds either TCP or UDP traffic: switch only when it is empty (save or clear it first).
 - **A draft cannot be made from a UDP recording yet.** The recording can be saved and loaded again.

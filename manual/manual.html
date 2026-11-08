@@ -68,7 +68,7 @@
 </ul>
 
 <h3>Starting the program</h3>
-<p>Extract the downloaded ZIP to a folder you can write to (the desktop or Documents, for example) and run <code>Command Workbench-0.2.0-portable.exe</code>. There is no installer.</p>
+<p>Extract the downloaded ZIP to a folder you can write to (the desktop or Documents, for example) and run <code>Command Workbench-0.3.0-portable.exe</code>. There is no installer.</p>
 <ul>
   <li>The first start can take a few seconds.</li>
   <li>The program is not code-signed, so Windows or your antivirus software may show a warning. Check where you downloaded it from, then decide whether to run it.</li>
@@ -269,6 +269,7 @@
   <li><span class="ui">Paste rows from a manual table</span> takes lines copied from a spreadsheet or a manual: the command and the reply separated by a tab, one command per line.</li>
   <li>A mistake (for example the same command twice) is shown with its row number, and the buttons stay disabled until it is fixed.</li>
   <li><span class="ui">Add to the controller's saved commands</span> (below the table) saves the same commands as saved commands of a controller device, so the manual's table is typed only once. Choose a saved device or a new one (while the virtual device is running, its port is filled in). From the Controller tab, each command then makes the virtual device answer as the table says. A name that already exists in the target device is skipped, never overwritten.</li>
+  <li><span class="ui">Load a definition…</span> fills the table from an existing JSON definition. It works only for definitions the table can fully represent: if there is any state, condition, delay or notification, the whole load is refused with the reasons (it never loads only part).</li>
   <li>A table covers fixed replies only. A device whose state changes, or one that needs conditions, notifications or connection quirks, needs a JSON definition (see <a href="#definition">9. Writing a definition</a>).</li>
 </ul>
 
@@ -513,7 +514,7 @@
   <dt>Datagram</dt>
   <dd>The chunk of data sent in one UDP send. In this tool, one datagram is one command or one reply.</dd>
   <dt>Reply (response)</dt>
-  <dd>The data a device sends back after you send a command: an answer to "what is your status?", an "accepted" notice, and so on.</dd>
+  <dd>The data a device sends back after you send a command: a reply to "what is your status?", an "accepted" notice, and so on.</dd>
   <dt>Terminator</dt>
   <dd>The character that marks the end of a command: CR, LF or both (CR+LF). Each device has its own.</dd>
   <dt>CR / LF</dt>
@@ -532,7 +533,7 @@
   <dd>Something that sits between two parties and passes their traffic on. The Relay in this tool records the traffic while it does so.</dd>
 </dl>
 
-<p class="footer">Manual for Command Workbench 0.2.0. This program does not guarantee the behaviour of any particular manufacturer's or model's device. For the license, see the bundled LICENSE.</p>
+<p class="footer">Manual for Command Workbench 0.3.0. This program does not guarantee the behaviour of any particular manufacturer's or model's device. For the license, see the bundled LICENSE.</p>
 </main>
 </div>
 </body>

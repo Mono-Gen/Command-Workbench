@@ -384,7 +384,7 @@
 
   async function sendDirect() {
     if (S.sending) return;
-    const spec = { ...composerSpec(), expectsReply: true };
+    const spec = composerSpec();
     if (spec.text === '') {
       $('input').focus();
       return;
@@ -549,7 +549,7 @@
     });
     $('send').addEventListener('click', sendDirect);
     $('save-command').addEventListener('click', () => {
-      const spec = { ...composerSpec(), expectsReply: true };
+      const spec = composerSpec();
       if (spec.text === '') {
         $('input').focus();
         return;
