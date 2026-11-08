@@ -271,6 +271,8 @@
     S.loadReport = { kind: 'pending' };
     renderLoadReport();
     updateButtons();
+    // Edits made while the file is being read would be overwritten when it arrives, so freeze the form.
+    $('table-form').inert = true;
     try {
       const result = await wb.deviceTableLoad();
       if (result.ok) {
@@ -292,6 +294,7 @@
     } catch (error) {
       S.loadReport = { kind: 'failure', result: { code: 'internal_error' } };
     } finally {
+      $('table-form').inert = false;
       S.busy = false;
       renderLoadReport();
       updateButtons();

@@ -181,3 +181,25 @@ test('load into table passes cancellation through and refuses a second chooser w
   const cancelled = setup().service;
   assert.deepEqual(await cancelled.tableLoadFile(), { ok: false, code: 'cancelled' });
 });
+
+test('table load, file load and table save refuse to overlap with each other', async () => {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const { service } = setup({
+    saveText: async () => ({ ok: true, fileName: 'saved.json' }),
+    chooseFile: async () => { await gate; return { ok: false, code: 'cancelled' }; },
+  });
+  const first = service.tableLoadFile();
+  assert.deepEqual(await service.loadFile(), { ok: false, code: 'busy' });
+  assert.deepEqual(await service.tableSave(table({ rows: [{ command: 'A', reply: 'B' }] })), { ok: false, code: 'busy' });
+  release();
+  await first;
+  // A file load in flight also blocks a table load.
+  let release2;
+  const gate2 = new Promise((resolve) => { release2 = resolve; });
+  const other = setup({ chooseFile: async () => { await gate2; return { ok: false, code: 'cancelled' }; } }).service;
+  const pending = other.loadFile();
+  assert.deepEqual(await other.tableLoadFile(), { ok: false, code: 'busy' });
+  release2();
+  await pending;
+});

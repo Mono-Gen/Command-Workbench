@@ -205,6 +205,7 @@ function createDeviceService({
 
   async function loadFile() {
     if (isBusy()) return { ok: false, code: 'running' };
+    if (tableLoading) return { ok: false, code: 'busy' };
     const seq = ++loadSeq;
     loadsInFlight += 1;
     try {
@@ -295,7 +296,8 @@ function createDeviceService({
   }
 
   async function tableLoadFile() {
-    if (tableLoading) return { ok: false, code: 'busy' };
+    // Native dialogs and file reads must not overlap, whichever operation started them.
+    if (tableLoading || tableSaving || loadsInFlight > 0) return { ok: false, code: 'busy' };
     tableLoading = true;
     try {
       const chosen = await chooseFile();
@@ -341,7 +343,7 @@ function createDeviceService({
 
   async function tableSave(input) {
     if (saveText === null) return { ok: false, code: 'save_unavailable' };
-    if (tableSaving) return { ok: false, code: 'busy' };
+    if (tableSaving || tableLoading) return { ok: false, code: 'busy' };
     const built = buildTableDefinition(input);
     if (!built.ok) return invalidTable(built.errors);
     tableSaving = true;
