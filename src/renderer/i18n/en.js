@@ -86,7 +86,7 @@
   'composer.preview.empty': 'The exact bytes that will be sent appear here as you type.',
   'composer.preview.bytes': '{n} bytes',
   'composer.help.title': 'Notation',
-  'composer.help.body': 'You can use names such as [CR] [LF] [CRLF] [NUL] [STX] [ETX] [ACK] [NAK] [ESC] [SP], hex such as 0x0D, and the escapes \\r \\n \\t \\\\. When writing several hex bytes, separate them with spaces, like 0x0D 0x0A.',
+  'composer.help.body': 'You can use names such as [CR] [LF] [CRLF] [NUL] [STX] [ETX] [ACK] [NAK] [ESC] [SP], hex such as 0x0D, and the escapes \\r \\n \\t \\\\. To write [ or < as a plain character, use \\[ or \\<. When writing several hex bytes, separate them with spaces, like 0x0D 0x0A.',
   'warn.non_ascii': 'The input has characters that are not ASCII: {items}. They are sent as UTF-8 bytes, which many devices do not accept. Text copied from a manual can contain full-width letters or spaces.',
   'warn.non_ascii.space': 'a space that is not a plain space (U+{code}) at character {position}',
   'warn.non_ascii.invisible': 'an invisible character (U+{code}) at character {position}',

@@ -86,7 +86,7 @@
   'composer.preview.empty': '入力すると、実際に送るバイトがここに出ます。',
   'composer.preview.bytes': '{n} バイト',
   'composer.help.title': '書き方',
-  'composer.help.body': '[CR] [LF] [CRLF] [NUL] [STX] [ETX] [ACK] [NAK] [ESC] [SP] などの名前、0x0D のような16進、\\r \\n \\t \\\\ のエスケープが使えます。16進を続けて書くときは 0x0D 0x0A のように空白で区切ってください。',
+  'composer.help.body': '[CR] [LF] [CRLF] [NUL] [STX] [ETX] [ACK] [NAK] [ESC] [SP] などの名前、0x0D のような16進、\\r \\n \\t \\\\ のエスケープが使えます。[ や < を文字としてそのまま書くときは \\[ や \\< と書いてください。16進を続けて書くときは 0x0D 0x0A のように空白で区切ってください。',
   'warn.non_ascii': 'ASCII 以外の文字が含まれています: {items}。UTF-8 のバイト列として送られるので、機器によっては受け付けません。マニュアルからコピーした文字には、全角の英数字や空白が混ざることがあります。',
   'warn.non_ascii.space': '{position} 文字目に、半角ではない空白(U+{code})',
   'warn.non_ascii.invisible': '{position} 文字目に、見えない文字(U+{code})',
