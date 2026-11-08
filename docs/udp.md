@@ -21,7 +21,7 @@ A device that talks UDP usually treats a trailing terminator as optional. The vi
 
 ## Controller tab
 
-1. In the device dialog choose **UDP** as the communication kind and enter the address and port. Only addresses on your own network (private addresses, or this PC) are accepted. Broadcast and multicast addresses (including the broadcast address of your own network) are refused: one command would reach many devices.
+1. In the **Register a device** window set **Transport** to **UDP** and enter the address and port. Only addresses on your own network (private addresses, or this PC) are accepted. Broadcast and multicast addresses (including the broadcast address of your own network) are refused: one command would reach many devices.
 2. Press **Connect**. The badge says *UDP ready (delivery not confirmed)*. That is all it means.
 3. Type a command and press **Send**. One send is one datagram. An empty command cannot be sent.
 
@@ -38,9 +38,9 @@ Limits that protect other equipment: at most 5 new "connections" per 10 seconds,
 
 Add `"transport": "udp"` to a definition (see [Writing a device definition](device-definition.md)), or choose the definition **Sample UDP unit** from the list. The tab then listens for datagrams instead of connections.
 
-- Each datagram is one command. The answer goes back to the **sender**, from the port the device listens on.
+- Each datagram is one command. The reply goes back to the **sender**, from the port the device listens on.
 - Each sender (address and port) is a **source**, listed instead of connections. The device state is **shared** by all sources, as with several TCP connections. A notification addressed to `all` goes to the sources that have talked to the device recently.
-- `maxConnections` limits how many sources are served at once; datagrams from further sources are **ignored** (both values of `overLimit` behave this way). `minCommandIntervalMs`, `startupQuietMs` and the fault injection work as in TCP; **Close all connections** makes the device forget all sources.
+- `maxConnections` limits how many sources are served at once; datagrams from further sources are **ignored** (both values of `overLimit` behave this way). `minCommandIntervalMs`, `startupQuietMs` and the fault injection work as in TCP; **Close all connections now** makes the device forget all sources.
 - A source is forgotten after `idleTimeoutMs` without a datagram, or after **300 seconds** when that is `0`. Both `idleBehavior` values mean "forget the source"; it is served again at its next datagram.
 - A UDP definition cannot have a `greeting`: with no connection there is nothing to send it on.
 - An empty datagram is ignored.
@@ -56,11 +56,11 @@ Choose **UDP** for the communication, enter the target (a device on your own net
 - A session ends **60 seconds after the controller last sent something** (traffic from the device does not extend it), and in any case after one hour. A new datagram simply starts a new session.
 - The recording has **one item per datagram** and shows the kind of traffic (UDP). Like TCP recordings it contains no address or time of day. An empty datagram is passed on but not recorded. The recording holds either TCP or UDP traffic: switch only when it is empty (save or clear it first).
 - **A draft cannot be made from a UDP recording yet.** The recording can be saved and loaded again.
-- On the whole network, answers are limited like those of the virtual device (about 32 KiB per second in total and 8 KiB per second per session), so **a reply larger than 8 KiB is not relayed there** and the log says so. The same warning about forged sender addresses applies.
+- On the whole network, replies are limited like those of the virtual device (about 32 KiB per second in total and 8 KiB per second per session), so **a reply larger than 8 KiB is not relayed there** and the log says so. The same warning about forged sender addresses applies.
 
 ## What it cannot do yet
 
-Broadcast and multicast (sending or receiving), IPv6, resending or reordering datagrams, splitting a datagram at line ends, handshakes or logins, and drafting a definition from a UDP recording.
+Broadcast and multicast (sending or receiving), resending or reordering datagrams, splitting a datagram at line ends, handshakes or logins, and drafting a definition from a UDP recording. IPv6 is not supported and is not planned.
 
 ## Troubleshooting
 

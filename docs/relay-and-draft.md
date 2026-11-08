@@ -53,14 +53,14 @@ Everything the draft could **not** decide is listed, with a count and examples:
 
 | Item | What it means |
 |---|---|
-| Depends on state | The reply to a command changed between times (for example a power query before and after switching on). Left out: add variables yourself. |
-| Seen once | Included, but one observation does not show that the reply is always the same. |
-| Unclear which reply belongs to which | Commands came back to back, or the gap was shorter than the minimum. Left out. |
-| Reply in several lines | A recording cannot tell a multi-line reply from something the device said on its own. |
-| No line ending | A reply without a line ending is never treated as "no reply". Those commands are left out. |
-| Cannot be read as text, too long, too many | Left out. |
-| The message on connect differs | The message on connect is not included. |
-| Variables | The device state is **never** guessed from a recording. |
+| Commands whose reply changes with the device state | The reply to a command changed between times (for example a power query before and after switching on). Left out: add variables yourself. |
+| Commands seen only once | Included, but one observation does not show that the reply is always the same. |
+| Commands sent back to back, where it is unclear which reply belongs to which | Commands came back to back, or the gap was shorter than the minimum. Left out. |
+| Commands with a reply in several lines | A recording cannot tell a multi-line reply from something the device said on its own. |
+| Some replies have no line ending | A reply without a line ending is never treated as "no reply". Those commands are left out. |
+| Data that cannot be read as text, or content that is too long or too much | Left out. |
+| The message on connect differs between connections | The message on connect is not included. |
+| The device state (variables) is never guessed | The device state is **never** guessed from a recording. |
 
 ### How reliable is it
 
@@ -68,4 +68,4 @@ When the recording has two or more connections, the app makes the draft from som
 
 ## What it cannot do yet
 
-UDP; login or challenge-response handshakes; changing or injecting traffic; several targets at once; guessing variables or state from a recording; messages without a terminator (fixed length, length prefix).
+drafting a definition from a UDP recording; login or challenge-response handshakes; changing or injecting traffic; several targets at once; guessing variables or state from a recording; messages without a terminator (fixed length, length prefix).

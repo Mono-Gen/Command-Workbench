@@ -22,12 +22,12 @@ Above the table you choose the **name**, **TCP or UDP**, the **terminator** (CR,
 - Everything you type is literal text. `{`, `}` and `*` are not special here (they are in a JSON definition).
 - Spaces around a command are ignored. Two rows with the same command are a mistake: the first one would always win.
 - **Paste rows from a manual table** takes lines copied from a spreadsheet or a manual: one command per line, the command and the reply separated by a tab. A terminator written at the end of a cell is removed.
-- **Add to the controller's saved commands** (below the table) also saves the table's commands as saved commands of a controller device, so you type the manual's table only once. Choose a saved device or a new one (a name, a target and a port; while the virtual device is running its port is filled in). Sent from the Controller tab, each command makes the virtual device answer as the table says: the characters of a cell are sent exactly as you typed them (only the spaces at the start and the end of a command are dropped). A command whose name already exists in the target device is skipped, never overwritten, and the result says how many were added and skipped.
+- **Add to the controller's saved commands** (below the table) also saves the table's commands as saved commands of a controller device, so you type the manual's table only once. A row with an empty reply is saved as **This command gets no reply**. Choose a saved device or a new one (a name, a target and a port; while the virtual device is running its port is filled in). Sent from the Controller tab, each command makes the virtual device answer as the table says: the characters of a cell are sent exactly as you typed them (only the spaces at the start and the end of a command are dropped). A command whose name already exists in the target device is skipped, never overwritten, and the result says how many were added and skipped.
 - The **resulting definition (JSON)** on the right changes as you edit. It is exactly what **Use this definition** loads and what **Save as…** writes, so you can learn the format from it. **Save as…** offers the `samples` folder next to the program (when it exists), so the saved file appears in the **Definition** list after **Reload list**.
 
 **Load a definition…** fills the table from an existing JSON definition when it contains only what the table can represent: a name, TCP or UDP, one of the three terminators, an optional message on connect, literal commands with one fixed reply (or silence), and an optional fixed reply to unknown commands. If the definition has state, variables, conditions, delays, notifications, several replies, custom framing or any other information the table cannot preserve, the app rejects the whole load and lists the reasons; it never loads only part and silently drops the rest.
 
-A table covers fixed replies only. For a device that has state (the answer to `PWR?` changes after `PWR 1`), conditions, notifications or connection quirks, write the JSON described on the rest of this page. You can start from a file saved here and edit it in a text editor.
+A table covers fixed replies only. For a device that has state (the reply to `PWR?` changes after `PWR 1`), conditions, notifications or connection quirks, write the JSON described on the rest of this page. You can start from a file saved here and edit it in a text editor.
 
 ## Samples and your own definitions
 
@@ -61,7 +61,7 @@ The `samples` folder next to the program holds the definitions that come with th
 }
 ```
 
-Choose **Choose a file…** in the virtual device tab (or load one of the two bundled samples to see more features), then **Start**, and connect to it from the controller tab. Try `PWR ?[CR]`, `PWR 1[CR]`, `PWR 7[CR]` and `HELLO?[CR]` and watch the log on both sides.
+Choose **Choose a file…** in the virtual device tab (or load one of the bundled samples, such as **Sample quirky player**, to see more features), then **Start**, and connect to it from the controller tab. Try `PWR ?[CR]`, `PWR 1[CR]`, `PWR 7[CR]` and `HELLO?[CR]` and watch the log on both sides.
 
 What happens: `PWR ?` answers with the state; `PWR 1` changes the state and says **nothing** (many devices stay silent on success), but the notification is sent; `PWR 7` is not in the `map`, so the `invalid` reply `ERR 1` is sent and nothing changes; an unknown command gets `ERR 2`.
 

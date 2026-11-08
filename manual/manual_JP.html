@@ -63,8 +63,8 @@
   <li>練習と検証のための道具です。<strong>稼働中の本番の機器には使わないでください</strong>。試験用の機器か、仮想の機器で使ってください。</li>
   <li>特定のメーカーや機種を再現するものではありません。仮想の機器は、定義ファイルに書かれたことだけをします。<strong>実機の動作の保証にはなりません。</strong></li>
   <li>ログインや認証(チャレンジ・レスポンス)が必要な機器には、まだ対応していません。</li>
-  <li>対応する通信方式は TCP と UDP です。シリアル(RS-232C)や USB は扱えません。</li>
-  <li>ブロードキャスト・マルチキャスト(1回の送信で多数の機器へ届く送り方)、IPv6 には対応していません。</li>
+  <li>対応する通信方式は TCP と UDP です。シリアル接続や USB は扱えません。</li>
+  <li>ブロードキャスト・マルチキャスト(1回の送信で多数の機器へ届く送り方)には対応していません。IPv6 にも対応しておらず、対応の予定もありません。</li>
 </ul>
 
 <h3>起動のしかた</h3>
@@ -94,7 +94,7 @@
     <p><strong>制御役のタブから、そこへつなぎます。</strong>「制御役(送る側)」のタブを開き、<span class="ui">宛先</span>に <code>127.0.0.1</code>、<span class="ui">ポート</span>に覚えた番号を入れて、<span class="ui">接続</span>を押します。バッジが<span class="ui">接続済み</span>になり、機器からの接続時のメッセージ <code>SAMPLE MATRIX READY</code> が<span class="ui">送受信</span>の欄に出ます。</p>
   </li>
   <li>
-    <p><strong>コマンドを送ります。</strong>入力欄に <code>VER?[CR]</code> と入力します。入力欄の下の<span class="ui">送るバイト</span>に、実際に送られる中身(<code>56 45 52 3F 0D</code>)が出ます。<code>[CR]</code> が <code>0D</code>(改行にあたる制御文字)になっていることを確かめて、<span class="ui">送信</span>(または Enter)を押します。</p>
+    <p><strong>コマンドを送ります。</strong>入力欄に <code>PWR?[CR]</code> と入力します。入力欄の下の<span class="ui">送るバイト</span>に、実際に送られる中身(<code>50 57 52 3F 0D</code>)が出ます。<code>[CR]</code> が <code>0D</code>(改行にあたる制御文字)になっていることを確かめて、<span class="ui">送信</span>(または Enter)を押します。</p>
     <figure>
       <img src="images/ja-03-controller-compose.png" alt="制御役のタブ。入力欄に PWR?[CR] と入力し、その下に送るバイトが16進数と文字で並んで表示されている" width="1180" height="760">
       <figcaption>入力すると、送る前に「送るバイト」が見えます。<code>[CR]</code> は <code>0D</code> に変わっています。</figcaption>
@@ -109,7 +109,7 @@
         <tr><td><code>PWR?[CR]</code></td><td><code>PWR standby</code>(待機中)と返ります。</td></tr>
         <tr><td><code>OUT1 3[CR]</code></td><td>電源が入っていないので <code>ERR 10</code>(いまは受け付けない)と返ります。</td></tr>
         <tr><td><code>PWR 1[CR]</code></td><td>電源を入れます。<strong>成功したときは何も返らない</strong>のが、この仮想の機器の癖です(実機にもよくあります)。代わりに、機器が自分から <code>EVT PWR on</code>(通知)を送ってきます。</td></tr>
-        <tr><td><code>OUT1 3[CR]</code></td><td>今度は成功します。これも無言です。<code>OUT1?[CR]</code> で確かめると <code>OUT1 3</code> と返ります。</td></tr>
+        <tr><td><code>OUT1 3[CR]</code></td><td>今度は成功します。これも無言です(3秒ほどで「返答がありません」のヒントが出ることがありますが、直接入力したコマンドは必ず返答があるものとして扱うためで、ここでは正常です)。<code>OUT1?[CR]</code> で確かめると <code>OUT1 3</code> と返ります。</td></tr>
         <tr><td><code>OUT1 9[CR]</code></td><td>範囲外(1〜4 以外)なので <code>ERR 1</code> と返ります。</td></tr>
       </tbody>
     </table>
@@ -201,7 +201,7 @@
   <li>入力欄にコマンドを入れ、<span class="ui">送るバイト</span>を確かめます。</li>
   <li><span class="ui">送信</span>(または Enter)を押します。<strong>押した時点で、すぐ送られます。</strong>確認の画面は出ません。押す前に、送るバイトを確かめる習慣をつけてください。</li>
 </ol>
-<p>送って3秒ほど返答がなければ、ヒントが出ます。成功したときは何も返さないコマンドは、<span class="ui">コマンドに保存</span>の画面で<span class="ui">このコマンドは返答がない</span>にチェックを入れて保存してください。保存したコマンドから送るときは、返答がなくてもヒントを出しません。</p>
+<p>送って3秒ほど返答がなければ、ヒントが出ます。直接入力したコマンドは、必ず返答があるものとして扱います。成功したときは何も返さないコマンドは、<span class="ui">コマンドに保存</span>の画面で<span class="ui">このコマンドは返答がない</span>にチェックを入れて保存してください。そのコマンドは、返答がなくてもヒントを出しません。</p>
 
 <h3>コマンドを保存して使い回す</h3>
 <p><span class="ui">コマンドに保存</span>を押し、名前を付けて保存します。保存したコマンドは、左の<span class="ui">コマンド集</span>に並び、<span class="ui">送信</span>を押すだけで送れます。コマンドは、機器ごとに、プログラムと同じフォルダの <code>workbench-commands.json</code> に保存します。</p>

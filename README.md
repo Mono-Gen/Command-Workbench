@@ -56,7 +56,7 @@ To use a real device, enter its IP address and port instead. Read "Staying safe 
 
 The screen is available in Japanese and English.
 
-**Not yet:** login or challenge-response handshakes; UDP broadcast and multicast; drafting a definition from a UDP recording. IPv6 is not supported.
+**Not yet:** login or challenge-response handshakes; UDP broadcast and multicast; drafting a definition from a UDP recording. IPv6 is not supported and is not planned.
 
 ## Notation
 

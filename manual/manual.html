@@ -63,8 +63,8 @@
   <li>It is a tool for practice and testing. <strong>Do not use it on equipment that is in live service</strong>; use test equipment or the virtual device.</li>
   <li>It does not reproduce any particular manufacturer's or model's device. A virtual device does only what its definition says. <strong>It is not a guarantee of how a real device behaves.</strong></li>
   <li>Devices that need a login or a challenge-response handshake are not supported yet.</li>
-  <li>The supported transports are TCP and UDP. Serial (RS-232C) and USB are not supported.</li>
-  <li>Broadcast and multicast (one send that reaches many devices) and IPv6 are not supported.</li>
+  <li>The supported transports are TCP and UDP. Serial connections and USB are not supported.</li>
+  <li>Broadcast and multicast (one send that reaches many devices) are not supported. IPv6 is not supported either, and is not planned.</li>
 </ul>
 
 <h3>Starting the program</h3>
@@ -94,7 +94,7 @@
     <p><strong>Connect to it from the Controller tab.</strong> Open the "Controller (sender)" tab, enter <code>127.0.0.1</code> as the <span class="ui">Target</span> and the port number you noted as the <span class="ui">Port</span>, and press <span class="ui">Connect</span>. The badge turns to <span class="ui">Connected</span>, and the device's message on connect <code>SAMPLE MATRIX READY</code> appears in <span class="ui">Traffic</span>.</p>
   </li>
   <li>
-    <p><strong>Send a command.</strong> Type <code>VER?[CR]</code> in the input box. Under it, <span class="ui">Bytes to send</span> shows what will really be sent (<code>56 45 52 3F 0D</code>). Check that <code>[CR]</code> became <code>0D</code> (a control character that acts as a line ending), then press <span class="ui">Send</span> (or Enter).</p>
+    <p><strong>Send a command.</strong> Type <code>PWR?[CR]</code> in the input box. Under it, <span class="ui">Bytes to send</span> shows what will really be sent (<code>50 57 52 3F 0D</code>). Check that <code>[CR]</code> became <code>0D</code> (a control character that acts as a line ending), then press <span class="ui">Send</span> (or Enter).</p>
     <figure>
       <img src="images/en-03-controller-compose.png" alt="The Controller tab with PWR?[CR] typed in the input box and the bytes to send shown below it in hexadecimal and as text" width="1180" height="760">
       <figcaption>As you type, "Bytes to send" shows the result before anything is sent. <code>[CR]</code> has become <code>0D</code>.</figcaption>
@@ -109,7 +109,7 @@
         <tr><td><code>PWR?[CR]</code></td><td>The reply is <code>PWR standby</code>.</td></tr>
         <tr><td><code>OUT1 3[CR]</code></td><td>The power is not on, so the reply is <code>ERR 10</code> (not accepted right now).</td></tr>
         <tr><td><code>PWR 1[CR]</code></td><td>Switches the power on. <strong>Nothing is replied when it succeeds</strong>; that is a quirk of this virtual device (real devices often do the same). Instead the device announces <code>EVT PWR on</code> by itself (a notification).</td></tr>
-        <tr><td><code>OUT1 3[CR]</code></td><td>This time it succeeds, again silently. Check with <code>OUT1?[CR]</code>; the reply is <code>OUT1 3</code>.</td></tr>
+        <tr><td><code>OUT1 3[CR]</code></td><td>This time it succeeds, again silently. (A "No reply" hint may appear after about three seconds: a command typed directly is always expected to get a reply, so this is normal here.) Check with <code>OUT1?[CR]</code>; the reply is <code>OUT1 3</code>.</td></tr>
         <tr><td><code>OUT1 9[CR]</code></td><td>Out of range (only 1 to 4 are valid), so the reply is <code>ERR 1</code>.</td></tr>
       </tbody>
     </table>
@@ -127,7 +127,7 @@
     </figure>
   </li>
   <li>
-    <p><strong>Break it on purpose.</strong> Under <span class="ui">Fault injection</span> tick <span class="ui">Stop responding (mute)</span>, then send <code>PWR?[CR]</code> again from the Controller tab. No reply comes. After about three seconds <span class="ui">Diagnostic hints</span> on the right shows "No reply" and what to check. This is what it looks like when a real device goes quiet.</p>
+    <p><strong>Break it on purpose.</strong> Under <span class="ui">Fault injection</span> tick <span class="ui">Stop responding (mute)</span>, then send <code>PWR?[CR]</code> again from the Controller tab. No reply comes. After about three seconds <span class="ui">Diagnostic hints</span> on the right shows "No reply" and what to check. This is what it looks like when a real device goes quiet. Untick the mute box afterwards.</p>
   </li>
 </ol>
 
@@ -201,7 +201,7 @@
   <li>Type a command and check <span class="ui">Bytes to send</span>.</li>
   <li>Press <span class="ui">Send</span> (or Enter). <strong>It is sent immediately.</strong> There is no confirmation screen, so make a habit of checking the bytes before you press it.</li>
 </ol>
-<p>When no reply comes within about three seconds, a hint appears. For a command that the device accepts silently, tick <span class="ui">This command gets no reply</span> in the <span class="ui">Save as command</span> dialog. When you send from the saved command, no hint appears if there is no reply.</p>
+<p>When no reply comes within about three seconds, a hint appears. A command typed directly is always expected to get a reply. For a command that the device accepts silently, tick <span class="ui">This command gets no reply</span> in the <span class="ui">Save as command</span> dialog. That command never triggers the hint when it gets no reply.</p>
 
 <h3>Saving commands for reuse</h3>
 <p>Press <span class="ui">Save as command</span> and give it a name. Saved commands appear under <span class="ui">Commands</span> on the left and can be sent with one press of <span class="ui">Send</span>. Commands are saved per device, in <code>workbench-commands.json</code> in the same folder as the program.</p>
@@ -318,7 +318,7 @@
   <li><span class="ui">Try it as a virtual device</span> loads it into the Device tab (stop a running virtual device first). <span class="ui">Save as definition…</span> writes an editable JSON file.</li>
   <li>A device's "state" (is it powered on, for example) is <strong>never guessed</strong> from a recording. A command whose reply depends on state does not go into the draft; add the variables yourself.</li>
 </ul>
-<p>A draft is a starting point. It is <strong>not a guarantee</strong> that it behaves like the real device. For how drafts are made and what each "Things to check" item means, see <a href="../docs/relay-and-draft.md">Recording traffic with the Relay, and drafting a definition</a>.</p>
+<p>A draft is a starting point. It is <strong>not a guarantee</strong> that it behaves like the real device. For how drafts are made and what each "Things to check" item means, see <a href="../docs/relay-and-draft.md">Recording traffic with the relay, and the draft definition</a>.</p>
 
 <h3>What the Relay promises, and what it does not</h3>
 <ul>
@@ -362,7 +362,7 @@
 <h3>UDP in the Device and the Relay</h3>
 <ul>
   <li><strong>Device:</strong> a definition with <code>"transport": "udp"</code> becomes a UDP device. The bundled <span class="ui">Sample UDP unit</span> is an example. Several peers (sources) can talk to it at once, and the device's state is shared by all of them.</li>
-  <li><strong>Relay:</strong> choose <span class="ui">UDP</span> as the transport. Each peer gets its own path, so replies go back to the right peer. A draft definition cannot yet be made from a UDP recording.</li>
+  <li><strong>Relay:</strong> set <span class="ui">Communication</span> to <span class="ui">UDP (datagrams)</span>. Each peer gets its own path, so replies go back to the right peer. A draft definition cannot yet be made from a UDP recording.</li>
 </ul>
 <p>When listening on the whole network, the sender address of a UDP datagram can be forged, so the program limits how much it sends to keep others from being drawn in. <strong>Because of that limit, a large reply (over 8 KiB in the Relay) may not get through.</strong> See <a href="../docs/udp.md">Using UDP</a> for details.</p>
 
@@ -371,7 +371,7 @@
 <p>A virtual device's behaviour is written in a small JSON file, the definition. <strong>It is not a programming language.</strong> There are no expressions or scripts, only:</p>
 <ul>
   <li><strong>Variables</strong> — the device's state (power, the selected input, and so on).</li>
-  <li><strong>Commands</strong> — what each input is answered with, and how it changes the state.</li>
+  <li><strong>Commands</strong> — what reply each input gets, and how it changes the state.</li>
   <li><strong>Notifications</strong> — things the device says by itself (when its state changes, for example).</li>
   <li><strong>Connection quirks</strong> — a connection limit, idle disconnect, silence just after start-up, and so on.</li>
 </ul>
@@ -403,7 +403,7 @@
   <li>With the device's manual at hand, add commands and rewrite the replies.</li>
   <li>Save it in the <code>samples</code> folder and press <span class="ui">Reload list</span>. If it breaks a rule, every problem is shown <strong>with its position</strong> when it is loaded.</li>
 </ol>
-<p>The items, variable types, conditions, notifications and connection quirks are all listed in <a href="../docs/device-definition.md">Writing a virtual device definition</a>.</p>
+<p>The items, variable types, conditions, notifications and connection quirks are all listed in <a href="../docs/device-definition.md">Writing a device definition</a>.</p>
 
 <!-- ============ 10 ============ -->
 <h2 id="trouble">10. When something goes wrong</h2>
