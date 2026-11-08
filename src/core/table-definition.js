@@ -48,6 +48,186 @@ const isPlainObject = (value) => {
 const escapePattern = (text) => text.replaceAll('{', '{{').replaceAll('}', '}}').replaceAll('*', '**');
 const escapeReply = (text) => text.replaceAll('{', '{{').replaceAll('}', '}}');
 
+function unescapePattern(text) {
+  let plain = '';
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if ('{}*'.includes(character)) {
+      if (text[index + 1] !== character) return null;
+      index += 1;
+    }
+    plain += character;
+  }
+  return plain;
+}
+
+function unescapeReply(text) {
+  let plain = '';
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (character === '{' || character === '}') {
+      if (text[index + 1] !== character) return null;
+      index += 1;
+    }
+    plain += character;
+  }
+  return plain;
+}
+
+const TOP_LEVEL_FIELDS = new Set(['schemaVersion', 'name', 'transport', 'framing', 'greeting', 'commands', 'unknown']);
+const UNSUPPORTED_TOP_LEVEL = Object.freeze({
+  description: 'description_not_supported',
+  connection: 'connection_not_supported',
+  variables: 'variables_not_supported',
+  notifications: 'notifications_not_supported',
+});
+const COMMAND_FIELDS = new Set(['pattern', 'reply']);
+const UNSUPPORTED_COMMAND_FIELDS = Object.freeze({
+  id: 'command_id_not_supported',
+  caseInsensitive: 'case_insensitive_not_supported',
+  capture: 'capture_not_supported',
+  when: 'conditions_not_supported',
+  do: 'state_changes_not_supported',
+  delayMs: 'delay_not_supported',
+  otherwise: 'alternate_reply_not_supported',
+  invalid: 'alternate_reply_not_supported',
+});
+
+// Converts only definitions whose information can survive a trip through the beginner table.
+// Representation checks run before general validation so unsupported fields get a useful reason
+// instead of being reported only as an invalid definition.
+function definitionToTable(json) {
+  const reasons = [];
+  const reject = (code, detail) => reasons.push(detail === undefined ? { code } : { code, detail });
+  if (!isPlainObject(json)) return { ok: false, reasons: [{ code: 'invalid_definition' }] };
+
+  for (const key of Object.keys(json)) {
+    if (!TOP_LEVEL_FIELDS.has(key)) {
+      reject(UNSUPPORTED_TOP_LEVEL[key] ?? 'unknown_top_level_field', { field: key });
+    }
+  }
+  if (Object.hasOwn(json, 'schemaVersion') && json.schemaVersion !== 1) {
+    reject('unsupported_schema_version', { value: json.schemaVersion });
+  }
+  if (Object.hasOwn(json, 'transport') && !TRANSPORTS.includes(json.transport)) {
+    reject('unsupported_transport', { value: json.transport });
+  }
+
+  if (isPlainObject(json.framing)) {
+    for (const key of Object.keys(json.framing)) {
+      if (key !== 'terminator') reject('custom_framing_not_supported', { field: key });
+    }
+    if (Object.hasOwn(json.framing, 'terminator') && !Object.hasOwn(TERMINATORS, json.framing.terminator)) {
+      reject('unsupported_terminator', { value: json.framing.terminator });
+    }
+  }
+
+  if (Array.isArray(json.commands)) {
+    json.commands.forEach((command, index) => {
+      if (!isPlainObject(command)) return;
+      for (const key of Object.keys(command)) {
+        if (!COMMAND_FIELDS.has(key)) {
+          reject(UNSUPPORTED_COMMAND_FIELDS[key] ?? 'unknown_command_field', { index, field: key });
+        }
+      }
+    });
+  }
+  if (isPlainObject(json.unknown)) {
+    for (const key of Object.keys(json.unknown)) {
+      if (key !== 'reply') reject('unknown_reply_field_not_supported', { field: key });
+    }
+  }
+  if (reasons.length > 0) return { ok: false, reasons };
+
+  const checked = validateDefinition(json);
+  if (!checked.ok) return { ok: false, reasons: [{ code: 'invalid_definition', detail: { errors: checked.errors } }] };
+
+  const terminator = json.framing.terminator;
+  const suffix = TERMINATORS[terminator];
+  const decodeReplyCell = (value, where, { nullable = true } = {}) => {
+    if (value === null && nullable) return '';
+    if (Array.isArray(value)) {
+      reject('multiple_replies_not_supported', where);
+      return null;
+    }
+    if (typeof value !== 'string') return null;
+    if (!value.endsWith(suffix)) {
+      reject('reply_terminator_mismatch', where);
+      return null;
+    }
+    const body = value.slice(0, -suffix.length);
+    if (body.length === 0) {
+      reject('empty_reply_not_supported', where);
+      return null;
+    }
+    const plain = unescapeReply(body);
+    if (plain === null) {
+      reject('non_fixed_reply', where);
+      return null;
+    }
+    if (CONTROL_CHARACTER.test(plain)) {
+      reject('reply_control_character', where);
+      return null;
+    }
+    if (TRAILING_TERMINATOR.test(plain) || endsWithTerminator(plain, terminator)) {
+      reject('reply_terminator_included', where);
+      return null;
+    }
+    return plain;
+  };
+
+  if (json.name !== json.name.trim()) reject('name_whitespace_not_preserved');
+  if (json.commands.length === 0) reject('no_commands');
+
+  const rows = [];
+  const seen = new Set();
+  json.commands.forEach((command, index) => {
+    const plain = unescapePattern(command.pattern);
+    if (plain === null) {
+      reject('non_literal_pattern', { index });
+    } else {
+      if (plain !== plain.trim()) reject('command_whitespace_not_preserved', { index });
+      if (CONTROL_CHARACTER.test(plain)) reject('command_control_character', { index });
+      if (TRAILING_TERMINATOR.test(plain)) reject('command_terminator_included', { index });
+      if (seen.has(plain)) reject('duplicate_command', { index });
+      seen.add(plain);
+    }
+    const reply = Object.hasOwn(command, 'reply')
+      ? decodeReplyCell(command.reply, { index, field: 'reply' })
+      : '';
+    if (plain !== null && reply !== null) rows.push({ command: plain, reply });
+  });
+
+  let greeting = '';
+  if (Object.hasOwn(json, 'greeting')) {
+    const decoded = decodeReplyCell(json.greeting, { field: 'greeting' }, { nullable: false });
+    if (decoded !== null) greeting = decoded;
+  }
+  let unknownReply = '';
+  if (Object.hasOwn(json, 'unknown') && Object.hasOwn(json.unknown, 'reply')) {
+    const decoded = decodeReplyCell(json.unknown.reply, { field: 'unknownReply' });
+    if (decoded !== null) unknownReply = decoded;
+  }
+
+  if (reasons.length > 0) return { ok: false, reasons };
+  const input = {
+    name: json.name,
+    transport: json.transport ?? 'tcp',
+    terminator,
+    greeting,
+    unknownReply,
+    rows,
+  };
+  const rebuilt = buildTableDefinition(input);
+  if (!rebuilt.ok) {
+    return {
+      ok: false,
+      reasons: rebuilt.errors.map((error) => ({ code: error.code, detail: { ...error.where, ...error.detail } })),
+    };
+  }
+  return { ok: true, input };
+}
+
 function describeInput(input) {
   if (!isPlainObject(input)) return 'not_an_object';
   if (typeof input.name !== 'string') return 'name';
@@ -249,4 +429,4 @@ function tableDefinitionText(json) {
   return `${JSON.stringify(json, null, 2)}\n`;
 }
 
-module.exports = { buildTableDefinition, buildTableCommands, tableDefinitionText, LIMITS, TERMINATORS };
+module.exports = { buildTableDefinition, buildTableCommands, definitionToTable, tableDefinitionText, LIMITS, TERMINATORS };

@@ -96,3 +96,20 @@ test('every definition error code, pattern reason, event, close reason and outco
   }
 });
 
+test('every definition-to-table rejection reason is translated in both languages', () => {
+  const reasons = [
+    'invalid_definition', 'unknown_top_level_field', 'description_not_supported', 'connection_not_supported',
+    'variables_not_supported', 'notifications_not_supported', 'unsupported_schema_version', 'unsupported_transport',
+    'custom_framing_not_supported', 'unsupported_terminator', 'command_id_not_supported',
+    'case_insensitive_not_supported', 'capture_not_supported', 'conditions_not_supported',
+    'state_changes_not_supported', 'delay_not_supported', 'alternate_reply_not_supported',
+    'unknown_command_field', 'unknown_reply_field_not_supported', 'multiple_replies_not_supported',
+    'reply_terminator_mismatch', 'empty_reply_not_supported', 'non_fixed_reply', 'reply_control_character',
+    'name_whitespace_not_preserved', 'no_commands', 'non_literal_pattern', 'command_whitespace_not_preserved',
+    'command_control_character', 'duplicate_command',
+  ];
+  for (const table of [ja, en]) {
+    for (const reason of reasons) assert.ok(table[`tbl.load.reason.${reason}`], reason);
+  }
+});
+

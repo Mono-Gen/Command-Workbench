@@ -5,7 +5,7 @@
 const CHANNELS = [
   'init', 'saveData', 'importTable', 'parsePreview', 'connect', 'disconnect', 'setKeepAlive',
   'sendSaved', 'sendDirect', 'startPeriodic', 'stopPeriodic', 'setLocale',
-  'deviceState', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceTablePreview', 'deviceTableUse', 'deviceTableSave', 'deviceStart', 'deviceStop', 'deviceSetFault', 'deviceCloseAll',
+  'deviceState', 'deviceLoadFile', 'deviceLoadSample', 'deviceRefreshSamples', 'deviceTableLoad', 'deviceTablePreview', 'deviceTableUse', 'deviceTableSave', 'deviceStart', 'deviceStop', 'deviceSetFault', 'deviceCloseAll',
   'relayState', 'relayStart', 'relayStop', 'relayClearRecording', 'relaySaveRecording', 'relayLoadRecording',
   'relayDraft', 'relaySaveDraft', 'relayUseDraft',
 ];
@@ -189,6 +189,8 @@ function createIpcHandlers({ service, deviceService, relayService, setLocale, on
     }),
 
     deviceRefreshSamples: guard((arg) => (arg === undefined ? deviceService.refreshSamples() : INVALID)),
+
+    deviceTableLoad: guard((arg) => (arg === undefined ? deviceService.tableLoadFile() : INVALID)),
 
     deviceTablePreview: guard((arg) => {
       const table = readTable(arg);

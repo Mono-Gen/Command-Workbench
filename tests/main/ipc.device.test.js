@@ -10,7 +10,7 @@ function setup() {
   const rec = (name) => (...args) => { calls.push([name, ...args]); return { ok: true, from: name }; };
   const deviceService = {
     getState: rec('getState'), loadFile: rec('loadFile'), loadSample: rec('loadSample'), refreshSamples: rec('refreshSamples'), start: rec('start'),
-    stop: rec('stop'), setFault: rec('setFault'), closeAll: rec('closeAll'),
+    tableLoadFile: rec('tableLoadFile'), stop: rec('stop'), setFault: rec('setFault'), closeAll: rec('closeAll'),
   };
   const handlers = createIpcHandlers({ service: {}, deviceService, setLocale: () => {} });
   return { handlers, calls };
@@ -95,6 +95,14 @@ test('table channels pass a copy that holds only the known fields', async () => 
     assert.notEqual(passed, arg, 'a copy, not the page object');
     assert.notEqual(passed.rows[0], arg.rows[0]);
   }
+});
+
+test('deviceTableLoad opens its own main-process chooser and accepts no renderer argument', async () => {
+  const { handlers, calls } = setup();
+  assert.equal((await handlers.deviceTableLoad()).ok, true);
+  assert.deepEqual(calls, [['tableLoadFile']]);
+  assert.deepEqual(await handlers.deviceTableLoad({ path: 'C:/x', text: '{}' }), INVALID);
+  assert.equal(calls.length, 1);
 });
 
 test('table channels refuse a malformed table before the service sees it', async () => {

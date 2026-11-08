@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('workbench', Object.freeze({
   deviceLoadFile: call('deviceLoadFile'),
   deviceLoadSample: call('deviceLoadSample'),
   deviceRefreshSamples: call('deviceRefreshSamples'),
+  deviceTableLoad: call('deviceTableLoad'),
   deviceTablePreview: call('deviceTablePreview'),
   deviceTableUse: call('deviceTableUse'),
   deviceTableSave: call('deviceTableSave'),

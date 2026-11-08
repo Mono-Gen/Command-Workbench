@@ -10,7 +10,7 @@ const { bundledSampleStore } = require('../helpers/sample-store');
 const { createFakeClock } = require('../helpers/fakes');
 const { FakeServer } = require('../helpers/fake-server');
 
-function setup({ saveText } = {}) {
+function setup({ saveText, chooseFile = async () => ({ ok: false, code: 'cancelled' }) } = {}) {
   const clock = createFakeClock();
   let service;
   const server = createDeviceServer({
@@ -21,7 +21,7 @@ function setup({ saveText } = {}) {
   });
   service = createDeviceService({
     server,
-    chooseFile: async () => ({ ok: false, code: 'cancelled' }),
+    chooseFile,
     sampleStore: bundledSampleStore(),
     confirm: async () => true,
     saveText,
@@ -115,4 +115,69 @@ test('save: a second request while the dialog is open is refused, and the next o
   release();
   assert.equal((await first).ok, true);
   assert.equal((await service.tableSave(table())).ok, true);
+});
+
+test('load into table reads through the native chooser and returns only validated table input', async () => {
+  const source = {
+    schemaVersion: 1,
+    name: 'Loaded table',
+    framing: { terminator: 'lf' },
+    greeting: 'HELLO[LF]',
+    commands: [{ pattern: 'PING', reply: 'PONG[LF]' }, { pattern: 'SET', reply: null }],
+    unknown: { reply: 'ERR[LF]' },
+  };
+  const { service } = setup({
+    chooseFile: async () => ({ ok: true, text: JSON.stringify(source), fileName: 'loaded.json' }),
+  });
+  assert.deepEqual(await service.tableLoadFile(), {
+    ok: true,
+    fileName: 'loaded.json',
+    input: {
+      name: 'Loaded table', transport: 'tcp', terminator: 'lf', greeting: 'HELLO', unknownReply: 'ERR',
+      rows: [{ command: 'PING', reply: 'PONG' }, { command: 'SET', reply: '' }],
+    },
+  });
+  assert.equal(service.getState().definition, null, 'loading the editor does not load the virtual device');
+});
+
+test('load into table reports invalid definitions and unrepresentable definitions without partial input', async () => {
+  const invalid = setup({
+    chooseFile: async () => ({ ok: true, text: '{"schemaVersion":1}', fileName: 'invalid.json' }),
+  });
+  const invalidResult = await invalid.service.tableLoadFile();
+  assert.equal(invalidResult.code, 'invalid_definition');
+  assert.equal(invalidResult.fileName, 'invalid.json');
+  assert.equal(Array.isArray(invalidResult.errors), true);
+  assert.equal(Object.hasOwn(invalidResult, 'input'), false);
+
+  const advanced = definitionText({ variables: {}, notifications: [] });
+  const rejected = setup({
+    chooseFile: async () => ({ ok: true, text: advanced, fileName: 'advanced.json' }),
+  });
+  const rejectedResult = await rejected.service.tableLoadFile();
+  assert.equal(rejectedResult.code, 'definition_not_table');
+  assert.deepEqual(rejectedResult.reasons.map((reason) => reason.code), ['variables_not_supported', 'notifications_not_supported']);
+  assert.equal(Object.hasOwn(rejectedResult, 'input'), false);
+});
+
+function definitionText(overrides = {}) {
+  return JSON.stringify({
+    schemaVersion: 1,
+    name: 'Advanced',
+    framing: { terminator: 'cr' },
+    commands: [{ pattern: 'PING', reply: 'PONG[CR]' }],
+    ...overrides,
+  });
+}
+
+test('load into table passes cancellation through and refuses a second chooser while the first is open', async () => {
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const { service } = setup({ chooseFile: async () => { await gate; return { ok: false, code: 'cancelled' }; } });
+  const first = service.tableLoadFile();
+  assert.deepEqual(await service.tableLoadFile(), { ok: false, code: 'busy' });
+  release();
+  assert.deepEqual(await first, { ok: false, code: 'cancelled' });
+  const cancelled = setup().service;
+  assert.deepEqual(await cancelled.tableLoadFile(), { ok: false, code: 'cancelled' });
 });

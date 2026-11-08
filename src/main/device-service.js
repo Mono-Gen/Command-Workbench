@@ -8,7 +8,7 @@ const { parseDefinitionText } = require('../core/device-definition');
 const { createDeviceEngine } = require('../core/device-engine');
 const { isValidatedDefinition } = require('../core/device-definition');
 const { formatView } = require('../core/format-view');
-const { buildTableDefinition, tableDefinitionText } = require('../core/table-definition');
+const { buildTableDefinition, definitionToTable, tableDefinitionText } = require('../core/table-definition');
 const { ALLOWED_HOSTS, isValidPort } = require('./device-server');
 
 const STATE_TICK_MS = 1000;
@@ -75,6 +75,7 @@ function createDeviceService({
   // current definition, and starting is refused while one is on its way.
   let loadSeq = 0;
   let loadsInFlight = 0;
+  let tableLoading = false;
   let tableSaving = false;
 
   const allServers = () => (udpServer === null ? [server] : [server, udpServer]);
@@ -293,6 +294,39 @@ function createDeviceService({
     return built.ok ? { ok: true, text: tableDefinitionText(built.json) } : invalidTable(built.errors);
   }
 
+  async function tableLoadFile() {
+    if (tableLoading) return { ok: false, code: 'busy' };
+    tableLoading = true;
+    try {
+      const chosen = await chooseFile();
+      if (!chosen.ok) return chosen;
+      const parsed = parseDefinitionText(chosen.text);
+      if (!parsed.ok) {
+        return {
+          ok: false,
+          code: 'invalid_definition',
+          fileName: chosen.fileName,
+          errors: parsed.errors.slice(0, MAX_ERRORS_TO_PAGE),
+          totalErrors: parsed.errors.length,
+        };
+      }
+      const text = chosen.text.charCodeAt(0) === 0xfeff ? chosen.text.slice(1) : chosen.text;
+      const converted = definitionToTable(JSON.parse(text));
+      if (!converted.ok) {
+        return {
+          ok: false,
+          code: 'definition_not_table',
+          fileName: chosen.fileName,
+          reasons: converted.reasons.slice(0, MAX_ERRORS_TO_PAGE),
+          totalReasons: converted.reasons.length,
+        };
+      }
+      return { ok: true, input: converted.input, fileName: chosen.fileName };
+    } finally {
+      tableLoading = false;
+    }
+  }
+
   function tableUse(input) {
     if (isBusy()) return { ok: false, code: 'running' };
     const built = buildTableDefinition(input);
@@ -385,7 +419,7 @@ function createDeviceService({
     stopTimers();
   }
 
-  return { handleServerEvent, loadFile, loadSample, refreshSamples, loadDraft, tablePreview, tableUse, tableSave, start, stop, setFault, closeAll, getState, shutdown };
+  return { handleServerEvent, loadFile, loadSample, refreshSamples, loadDraft, tableLoadFile, tablePreview, tableUse, tableSave, start, stop, setFault, closeAll, getState, shutdown };
 }
 
 module.exports = { createDeviceService, describeDefinition, MAX_ERRORS_TO_PAGE };

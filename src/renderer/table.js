@@ -21,6 +21,7 @@
     timer: null,
     defaultName: '',
     newNameTouched: false, // the user wrote the name of the new controller device themselves
+    loadReport: null,
   };
 
   const rowsBody = () => $('tbl-rows');
@@ -189,10 +190,112 @@
 
   function updateButtons() {
     const running = window.WbDeviceView.isRunning();
+    $('tbl-load').disabled = S.busy;
     $('tbl-use').disabled = S.busy || !S.ready || running;
     $('tbl-save').disabled = S.busy || !S.ready;
     $('tbl-import-go').disabled = S.busy || !S.ready;
     $('tbl-lock').textContent = running ? t('tbl.runningLocked') : '';
+  }
+
+  function loadReasonText(reason) {
+    const key = `tbl.load.reason.${reason.code}`;
+    const detail = reason.detail && typeof reason.detail === 'object' ? reason.detail : {};
+    const where = Number.isInteger(detail.index)
+      ? t('tbl.where.row', { row: detail.index + 1 })
+      : t(`tbl.where.${detail.field ?? 'definition'}`);
+    const text = t(key, {
+      field: typeof detail.field === 'string' ? detail.field : '',
+      row: Number.isInteger(detail.index) ? detail.index + 1 : '',
+      where,
+      value: detail.value === undefined ? '' : String(detail.value),
+    });
+    if (text !== key) return text;
+    const tableKey = `tbl.err.${reason.code}`;
+    const tableText = t(tableKey, { first: '' });
+    return tableText === tableKey ? reason.code : tableText;
+  }
+
+  function renderLoadReport() {
+    const box = $('tbl-load-note');
+    box.replaceChildren();
+    const report = S.loadReport;
+    if (report === null) return;
+    if (report.kind === 'pending') {
+      box.appendChild(el('p', 'muted small-text', t('tbl.load.pending')));
+      return;
+    }
+    if (report.kind === 'success') {
+      box.appendChild(el('p', 'info-line', t('tbl.load.loaded', { file: report.fileName })));
+      return;
+    }
+    if (report.kind === 'failure') {
+      box.appendChild(el('p', 'error', window.WbDeviceView.failText(report.result)));
+      return;
+    }
+    box.appendChild(el('p', 'error', t(report.kind === 'invalid' ? 'tbl.load.invalid' : 'tbl.load.rejected', { file: report.fileName })));
+    const list = el('ul', 'messages');
+    if (report.kind === 'invalid') {
+      for (const error of report.items) {
+        const key = `dev.defcode.${error.code}`;
+        const message = t(key);
+        const item = el('li', '', message === key ? error.code : message);
+        item.appendChild(el('div', 'muted small-text mono', t('tbl.load.at', { pointer: error.pointer || '/' })));
+        list.appendChild(item);
+      }
+    } else {
+      for (const reason of report.items) list.appendChild(el('li', '', loadReasonText(reason)));
+    }
+    box.appendChild(list);
+    if (report.total > report.items.length) {
+      box.appendChild(el('p', 'muted small-text', t('dev.def.more', { count: report.total - report.items.length })));
+    }
+  }
+
+  function applyLoadedTable(input) {
+    $('tbl-name').value = input.name;
+    $('tbl-transport').value = input.transport;
+    $('tbl-terminator').value = input.terminator;
+    $('tbl-greeting').value = input.greeting;
+    $('tbl-unknown').value = input.unknownReply;
+    rowsBody().replaceChildren();
+    for (const row of input.rows) addRow(row);
+    ensureBlankTail();
+    syncTransport();
+    populateTargets();
+    schedulePreview();
+  }
+
+  async function loadDefinition() {
+    if (S.busy) return;
+    S.busy = true;
+    S.loadReport = { kind: 'pending' };
+    renderLoadReport();
+    updateButtons();
+    try {
+      const result = await wb.deviceTableLoad();
+      if (result.ok) {
+        applyLoadedTable(result.input);
+        S.loadReport = { kind: 'success', fileName: result.fileName };
+      } else if (result.code === 'invalid_definition') {
+        S.loadReport = {
+          kind: 'invalid', fileName: result.fileName, items: result.errors, total: result.totalErrors,
+        };
+      } else if (result.code === 'definition_not_table') {
+        S.loadReport = {
+          kind: 'rejected', fileName: result.fileName, items: result.reasons, total: result.totalReasons,
+        };
+      } else if (result.code === 'cancelled') {
+        S.loadReport = null;
+      } else {
+        S.loadReport = { kind: 'failure', result };
+      }
+    } catch (error) {
+      S.loadReport = { kind: 'failure', result: { code: 'internal_error' } };
+    } finally {
+      S.busy = false;
+      renderLoadReport();
+      updateButtons();
+    }
   }
 
   function showResult(result) {
@@ -211,6 +314,7 @@
       showNotice(window.WbDeviceView.failText(result), true);
     }
     renderErrors();
+    renderLoadReport();
     updateButtons();
   }
 
@@ -399,6 +503,7 @@
     placeholders();
     renumber();
     renderErrors();
+    renderLoadReport();
     if (!S.ready) $('tbl-json').textContent = t('tbl.json.invalid');
     updateButtons();
   }
@@ -406,6 +511,7 @@
   function bind() {
     $('vd-make-table').addEventListener('click', open);
     $('tbl-close').addEventListener('click', () => $('table-dialog').close());
+    $('tbl-load').addEventListener('click', loadDefinition);
     // Enter in a field must not submit the form (that would close the dialog).
     $('table-form').addEventListener('submit', (event) => event.preventDefault());
     for (const id of ['tbl-name', 'tbl-greeting', 'tbl-unknown', 'tbl-terminator']) $(id).addEventListener('input', schedulePreview);

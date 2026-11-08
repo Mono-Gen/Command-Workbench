@@ -3,8 +3,12 @@
 // not from running the builder: where a definition is produced, it is run through the real engine.
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
-const { buildTableDefinition, buildTableCommands, tableDefinitionText, LIMITS } = require('../../src/core/table-definition');
+const {
+  buildTableDefinition, buildTableCommands, definitionToTable, tableDefinitionText, LIMITS,
+} = require('../../src/core/table-definition');
 const { parseCommand } = require('../../src/core/parse-command');
 const { parseDefinitionText } = require('../../src/core/device-definition');
 const { createDeviceEngine } = require('../../src/core/device-engine');
@@ -298,4 +302,101 @@ test('table commands share row validation and preserve original row numbers arou
 
 test('table commands preserve all three automatic terminators', () => {
   for (const terminator of ['cr', 'lf', 'crlf']) assertCommandInvariant('A<B> 0xZZ', terminator);
+});
+
+test('definitionToTable is the inverse for canonical table inputs, including tricky literal text', () => {
+  const rows = [
+    { command: String.raw`A\[x]<y> 0x0D {z}*`, reply: String.raw`R\\\[x\]\<y\> \x30x0A {z}*` },
+    { command: '日本語😀?', reply: '返答😀[TAB]終わり' },
+    { command: 'SILENT', reply: '' },
+  ];
+  for (const terminator of ['cr', 'lf', 'crlf']) {
+    for (const transport of ['tcp', 'udp']) {
+      const original = input({
+        name: `Round trip ${transport} ${terminator}`,
+        transport,
+        terminator,
+        greeting: transport === 'tcp' ? String.raw`HELLO \\ \[ \] \< \> \x30x 😀 {x}` : '',
+        unknownReply: String.raw`ERR \\ \[ \] \< \> \x30x 😀 {x}`,
+        rows,
+      });
+      const built = buildTableDefinition(original);
+      assert.equal(built.ok, true, JSON.stringify(built.errors));
+      assert.deepEqual(definitionToTable(built.json), { ok: true, input: original });
+    }
+  }
+});
+
+function definition(overrides = {}) {
+  return {
+    schemaVersion: 1,
+    name: 'Readable definition',
+    framing: { terminator: 'cr' },
+    commands: [{ pattern: 'PING', reply: 'PONG[CR]' }],
+    ...overrides,
+  };
+}
+
+function rejectionCode(value) {
+  const result = definitionToTable(value);
+  assert.equal(result.ok, false, JSON.stringify(result));
+  return result.reasons.map((reason) => reason.code);
+}
+
+const rejectionCases = [
+  ['invalid_definition', definition({ name: 7 }), 'invalid_definition'],
+  ['unknown_top_level_field', definition({ extra: true }), 'unknown_top_level_field'],
+  ['description_not_supported', definition({ description: 'extra' }), 'description_not_supported'],
+  ['connection_not_supported', definition({ connection: {} }), 'connection_not_supported'],
+  ['variables_not_supported', definition({ variables: {} }), 'variables_not_supported'],
+  ['notifications_not_supported', definition({ notifications: [] }), 'notifications_not_supported'],
+  ['unsupported_schema_version', definition({ schemaVersion: 2 }), 'unsupported_schema_version'],
+  ['unsupported_transport', definition({ transport: 'serial' }), 'unsupported_transport'],
+  ['custom_framing_not_supported', definition({ framing: { terminator: 'cr', maxLength: 20 } }), 'custom_framing_not_supported'],
+  ['unsupported_terminator', definition({ framing: { terminator: 'nul' } }), 'unsupported_terminator'],
+  ['command_id_not_supported', definition({ commands: [{ id: 'ping', pattern: 'PING', reply: 'PONG[CR]' }] }), 'command_id_not_supported'],
+  ['case_insensitive_not_supported', definition({ commands: [{ pattern: 'PING', caseInsensitive: true, reply: 'PONG[CR]' }] }), 'case_insensitive_not_supported'],
+  ['capture_not_supported', definition({ commands: [{ pattern: 'P {x}', capture: {}, reply: 'OK[CR]' }] }), 'capture_not_supported'],
+  ['conditions_not_supported', definition({ commands: [{ pattern: 'PING', when: [], reply: 'PONG[CR]' }] }), 'conditions_not_supported'],
+  ['state_changes_not_supported', definition({ commands: [{ pattern: 'PING', do: { set: {} }, reply: 'PONG[CR]' }] }), 'state_changes_not_supported'],
+  ['delay_not_supported', definition({ commands: [{ pattern: 'PING', delayMs: 1, reply: 'PONG[CR]' }] }), 'delay_not_supported'],
+  ['alternate_reply_not_supported', definition({ commands: [{ pattern: 'PING', otherwise: { reply: 'NO[CR]' }, reply: 'PONG[CR]' }] }), 'alternate_reply_not_supported'],
+  ['unknown_command_field', definition({ commands: [{ pattern: 'PING', reply: 'PONG[CR]', extra: true }] }), 'unknown_command_field'],
+  ['unknown_reply_field_not_supported', definition({ unknown: { reply: 'ERR[CR]', extra: true } }), 'unknown_reply_field_not_supported'],
+  ['multiple_replies_not_supported', definition({ commands: [{ pattern: 'PING', reply: ['A[CR]', 'B[CR]'] }] }), 'multiple_replies_not_supported'],
+  ['reply_terminator_mismatch', definition({ commands: [{ pattern: 'PING', reply: 'PONG[LF]' }] }), 'reply_terminator_mismatch'],
+  ['empty_reply_not_supported', definition({ commands: [{ pattern: 'PING', reply: '[CR]' }] }), 'empty_reply_not_supported'],
+  ['non_fixed_reply', definition({ commands: [{ pattern: '{value}', reply: '{capture.value}[CR]' }] }), 'non_fixed_reply'],
+  ['reply_control_character', definition({ commands: [{ pattern: 'PING', reply: 'A\tB[CR]' }] }), 'reply_control_character'],
+  ['name_whitespace_not_preserved', definition({ name: ' Padded ' }), 'name_whitespace_not_preserved'],
+  ['no_commands', definition({ commands: [] }), 'no_commands'],
+  ['non_literal_pattern', definition({ commands: [{ pattern: 'P*', reply: 'PONG[CR]' }] }), 'non_literal_pattern'],
+  ['command_whitespace_not_preserved', definition({ commands: [{ pattern: ' PING ', reply: 'PONG[CR]' }] }), 'command_whitespace_not_preserved'],
+  ['command_control_character', definition({ commands: [{ pattern: 'A\tB', reply: 'PONG[CR]' }] }), 'command_control_character'],
+  ['duplicate_command', definition({ commands: [{ pattern: 'PING', reply: null }, { pattern: 'PING', reply: null }] }), 'duplicate_command'],
+  ['command_terminator_included', definition({ commands: [{ pattern: 'PING[CR]', reply: 'PONG[CR]' }] }), 'command_terminator_included'],
+  ['reply_terminator_included', definition({ commands: [{ pattern: 'PING', reply: 'PONG[CR][CR]' }] }), 'reply_terminator_included'],
+];
+
+for (const [name, value, expected] of rejectionCases) {
+  test(`definitionToTable rejects ${name} with its specific reason`, () => {
+    assert.ok(rejectionCode(value).includes(expected));
+  });
+}
+
+test('every bundled sample has the spec-derived readable/rejected classification', () => {
+  const sampleDir = path.join(__dirname, '..', '..', 'src', 'samples');
+  const expected = {
+    'matrix-switch.json': ['description_not_supported', 'connection_not_supported', 'variables_not_supported', 'notifications_not_supported'],
+    'quirky-player.json': ['description_not_supported', 'connection_not_supported', 'variables_not_supported', 'notifications_not_supported'],
+    'udp-unit.json': ['description_not_supported', 'connection_not_supported', 'variables_not_supported', 'notifications_not_supported'],
+  };
+  assert.deepEqual(fs.readdirSync(sampleDir).filter((file) => file.endsWith('.json')).sort(), Object.keys(expected));
+  for (const [file, expectedReasons] of Object.entries(expected)) {
+    const json = JSON.parse(fs.readFileSync(path.join(sampleDir, file), 'utf8'));
+    const result = definitionToTable(json);
+    assert.equal(result.ok, false, file);
+    const actual = result.reasons.map((reason) => reason.code);
+    for (const code of expectedReasons) assert.ok(actual.includes(code), `${file}: ${code}`);
+  }
 });
