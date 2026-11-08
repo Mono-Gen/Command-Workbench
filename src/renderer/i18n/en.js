@@ -604,7 +604,7 @@
   'tbl.paste.tooMany': 'Too many rows ({max} at most).',
   'tbl.json.title': 'The resulting definition (JSON)',
   'tbl.json.help': 'It changes as you edit the table. You can save this JSON and use it as it is.',
-  'tbl.json.invalid': '(fix the problems on the left to see the definition here)',
+  'tbl.json.invalid': '(fix the problems in the input to see the definition here)',
   'tbl.errors.title': 'Things to fix',
   'tbl.where.row': 'Row {row}',
   'tbl.where.name': 'Name',
