@@ -61,15 +61,14 @@ test('sendSaved: needs string device and command names', async () => {
   }
 });
 
-test('sendDirect: only text/hex mode, the four terminators, boolean expectsReply; a "kind" is dropped', async () => {
+test('sendDirect: only text/hex mode and the four terminators; expectsReply and "kind" are dropped', async () => {
   const { service, calls } = fakeService();
   const handlers = createIpcHandlers({ service, setLocale: () => {} });
   await handlers.sendDirect({ text: 'A', mode: 'text', appendTerminator: 'cr', expectsReply: false, kind: 'query' });
-  assert.deepEqual(calls.at(-1), ['sendDirect', { text: 'A', mode: 'text', appendTerminator: 'cr', expectsReply: false }]);
+  assert.deepEqual(calls.at(-1), ['sendDirect', { text: 'A', mode: 'text', appendTerminator: 'cr' }]);
   for (const bad of [
     null, { text: 5, mode: 'text', appendTerminator: 'none' }, { text: 'A', mode: 'bin', appendTerminator: 'none' },
-    { text: 'A', mode: 'text', appendTerminator: 'cr+lf' }, { text: 'A', mode: 'text', appendTerminator: 'none', expectsReply: 'yes' },
-    { text: 'A'.repeat(1048577), mode: 'text', appendTerminator: 'none' },
+    { text: 'A', mode: 'text', appendTerminator: 'cr+lf' },     { text: 'A'.repeat(1048577), mode: 'text', appendTerminator: 'none' },
   ]) {
     assert.deepEqual(await handlers.sendDirect(bad), INVALID, JSON.stringify(bad).slice(0, 60));
   }

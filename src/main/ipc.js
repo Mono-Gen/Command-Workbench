@@ -156,7 +156,7 @@ function createIpcHandlers({ service, deviceService, relayService, setLocale, on
     }),
 
     sendDirect: guard((arg) => {
-      const input = readInput(arg, { withReply: true });
+      const input = readInput(arg, { withReply: false });
       return input ? service.sendDirect(input) : INVALID;
     }),
 

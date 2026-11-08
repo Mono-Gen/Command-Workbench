@@ -165,13 +165,13 @@ test('raw input is sent without a confirmation dialog', async (t) => {
   assert.equal(ctx.confirmCalls.length, 0, 'raw input is sent at once too');
 });
 
-test('direct input marks expectsReply (default true) in the history used for hints', async (t) => {
+test('direct input always expects a reply, even if a caller passes expectsReply: false', async (t) => {
   const ctx = await setup(t);
   await connected(ctx);
   await ctx.service.sendDirect({ text: 'X[CR]', mode: 'text', appendTerminator: 'none' });
   await ctx.service.sendDirect({ text: 'Y', mode: 'text', appendTerminator: 'none', expectsReply: false });
   const sends = ctx.connection.getHistory().filter((e) => e.type === 'send');
-  assert.deepEqual(sends.map((e) => [e.expectsReply, e.endsWithTerminator]), [[true, true], [false, false]]);
+  assert.deepEqual(sends.map((e) => [e.expectsReply, e.endsWithTerminator]), [[true, true], [true, false]]);
 });
 
 // ---- periodic ---------------------------------------------------------------------------

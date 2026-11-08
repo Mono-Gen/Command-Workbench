@@ -279,13 +279,14 @@ function createService({
     return sendResolved(found.command);
   }
 
-  function sendDirect({ text, mode, appendTerminator, expectsReply }) {
+  // A direct send always expects a reply: only a saved command can be marked as silent.
+  function sendDirect({ text, mode, appendTerminator }) {
     return sendResolved({
       name: null,
       text,
       mode,
       appendTerminator,
-      expectsReply: expectsReply !== false,
+      expectsReply: true,
     });
   }
 
