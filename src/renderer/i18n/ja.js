@@ -604,7 +604,7 @@
   'tbl.paste.tooMany': '行が多すぎます(最大 {max} 行)。',
   'tbl.json.title': 'できあがる定義(JSON)',
   'tbl.json.help': '表を直すと、ここも変わります。この JSON をそのまま保存して使えます。',
-  'tbl.json.invalid': '(入力の問題を直すと、ここに定義が表示されます)',
+  'tbl.json.invalid': '(まだ定義はできていません)',
   'tbl.errors.title': '直してほしいところ',
   'tbl.where.row': '{row} 行目',
   'tbl.where.name': '名前',
