@@ -271,7 +271,10 @@ function createDeviceServer({
       if (conn.closed || run !== r) return;
       conn.rawSinceMessage += chunk.length;
       let completed = false;
-      for (const event of conn.framer.push(Uint8Array.from(chunk))) {
+      // On the LAN the per-second message limit closes the connection at limit + 1 events, so the
+      // framer need not build more than that from one chunk.
+      const eventCap = r.lan ? lim.lanMessagesPerSecond + 1 : Infinity;
+      for (const event of conn.framer.push(Uint8Array.from(chunk), eventCap)) {
         if (conn.closed) break;
         if (event.type === 'message') completed = true;
         processMessage(conn, event);

@@ -177,10 +177,10 @@ function validateRecording(value) {
     // Required-field error is sufficient.
   } else if (!Array.isArray(value.connections)) add('/connections', 'invalid_type');
   else {
-    if (value.connections.length > RECORDING_LIMITS.MAX_CONNECTIONS) {
-      add('/connections', 'too_many_connections');
-    }
-    for (let index = 0; index < value.connections.length; index += 1) {
+    // Over the limit: report it and skip the elements, so a huge array cannot exhaust memory or time.
+    const connectionCount = value.connections.length > RECORDING_LIMITS.MAX_CONNECTIONS ? 0 : value.connections.length;
+    if (connectionCount === 0 && value.connections.length > 0) add('/connections', 'too_many_connections');
+    for (let index = 0; index < connectionCount; index += 1) {
       const item = value.connections[index];
       const pointer = `/connections/${index}`;
       if (!isPlainObject(item)) {
@@ -235,8 +235,9 @@ function validateRecording(value) {
     // Required-field error is sufficient.
   } else if (!Array.isArray(value.events)) add('/events', 'invalid_type');
   else {
-    if (value.events.length > RECORDING_LIMITS.MAX_EVENTS) add('/events', 'too_many_events');
-    for (let index = 0; index < value.events.length; index += 1) {
+    const eventCount = value.events.length > RECORDING_LIMITS.MAX_EVENTS ? 0 : value.events.length;
+    if (eventCount === 0 && value.events.length > 0) add('/events', 'too_many_events');
+    for (let index = 0; index < eventCount; index += 1) {
       const item = value.events[index];
       const pointer = `/events/${index}`;
       if (!isPlainObject(item)) {

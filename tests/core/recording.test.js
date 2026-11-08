@@ -327,3 +327,17 @@ test('the largest recording the recorder can produce is saved within the file li
   assert.equal(parsed.ok, true, JSON.stringify(parsed.errors));
   assert.equal(parsed.recording.events.length, RECORDING_LIMITS.MAX_EVENTS);
 });
+
+test('far-over-limit connection and event arrays are reported without scanning their elements', () => {
+  const connections = Array.from({ length: 5000 }, () => ({}));
+  const connectionErrors = errorsOf({ schemaVersion: 1, connections, events: [] });
+  hasError(connectionErrors, '/connections', 'too_many_connections');
+  assert.equal(connectionErrors.some((error) => error.pointer.startsWith('/connections/')), false);
+
+  const events = Array.from({ length: 300000 }, () => ({}));
+  const eventErrors = errorsOf(source({
+    connections: [{ id: 1, openedAt: 0, closedAt: null, closeReason: null }], events,
+  }));
+  hasError(eventErrors, '/events', 'too_many_events');
+  assert.equal(eventErrors.some((error) => error.pointer.startsWith('/events/')), false);
+});

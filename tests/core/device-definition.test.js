@@ -476,3 +476,17 @@ test('continues collecting independent errors after a structural error', () => {
     { pointer: '/framing', code: 'missing_field' },
   ]);
 });
+
+test('a far-over-limit commands array yields one too_many error without validating its elements', () => {
+  const definition = minimalDefinition();
+  definition.commands = Array.from({ length: 20000 }, () => ({}));
+  const errors = errorsOf(definition);
+  hasError(errors, '/commands', 'too_many');
+  assert.equal(errors.filter((error) => error.pointer.startsWith('/commands/')).length, 0);
+
+  const notifications = minimalDefinition();
+  notifications.notifications = Array.from({ length: 20000 }, () => ({}));
+  const notificationErrors = errorsOf(notifications);
+  hasError(notificationErrors, '/notifications', 'too_many');
+  assert.equal(notificationErrors.filter((error) => error.pointer.startsWith('/notifications/')).length, 0);
+});

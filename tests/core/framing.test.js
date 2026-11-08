@@ -156,3 +156,10 @@ test('rejects invalid options and non-Uint8Array chunks', () => {
     assert.throws(() => framer.push(input), TypeError);
   }
 });
+
+test('maxEvents bounds the events built from one chunk and leaves the default behavior unchanged', () => {
+  const framer = createFramer({ terminator: 'cr' });
+  const chunk = new Uint8Array(100000).fill(0x0d);
+  assert.equal(framer.push(chunk, 201).length, 201);
+  assert.equal(createFramer({ terminator: 'cr' }).push(chunk).length, 100000);
+});

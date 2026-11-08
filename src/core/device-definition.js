@@ -579,7 +579,9 @@ function validateCommands(value, pointer, variables, errors) {
     return [];
   }
   if (value.length > 500) {
+    // Stop here: validating every element of a huge array would only exhaust memory.
     errors.push({ pointer, code: 'too_many' });
+    return [];
   }
   const commands = [];
   const ids = new Set();
@@ -732,6 +734,7 @@ function validateNotifications(value, pointer, variables, errors) {
   }
   if (value.length > 100) {
     errors.push({ pointer, code: 'too_many' });
+    return [];
   }
   const notifications = [];
   const context = {

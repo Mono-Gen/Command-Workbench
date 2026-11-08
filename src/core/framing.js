@@ -45,13 +45,17 @@ function createFramer({ terminator, maxMessageBytes = 4096 } = {}) {
     discardPendingCr = byte === 0x0d;
   }
 
-  function push(bytes) {
+  // maxEvents bounds the events built from one chunk. A caller that closes the connection once it
+  // has seen that many events passes it so a chunk of bare terminators cannot allocate millions of
+  // events first; the bytes after the cap are dropped, so only use it when the stream will be closed.
+  function push(bytes, maxEvents = Infinity) {
     if (!(bytes instanceof Uint8Array)) {
       throw new TypeError('bytes must be a Uint8Array');
     }
 
     const events = [];
     for (const byte of bytes) {
+      if (events.length >= maxEvents) break;
       if (discarding) {
         if (terminator === 'crlf') {
           discardCrLfByte(byte);

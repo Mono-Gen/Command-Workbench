@@ -19,6 +19,7 @@ const dgram = require('node:dgram');
 const { classifyUdpTarget } = require('../core/address-policy');
 const { checkSendSize } = require('../core/datagram');
 const { defaultInterfaces, defaultResolve } = require('./udp-net');
+const { createWindowLimiter } = require('./rate-limit');
 
 const DEFAULTS = {
   timeoutMs: 5000,
@@ -35,22 +36,6 @@ const DEFAULTS = {
   recvPerSecond: 500,
   recvBytesPerSecond: 1024 * 1024,
 };
-
-// At most `maxCount` events and `maxBytes` bytes within any `windowMs`: a real sliding window,
-// so a burst split across a boundary cannot pass twice the limit.
-function createLimiter(maxCount, maxBytes, windowMs = 1000) {
-  const entries = [];
-  let bytes = 0;
-  return {
-    take(t, size) {
-      while (entries.length > 0 && t - entries[0].t >= windowMs) bytes -= entries.shift().size;
-      if (entries.length + 1 > maxCount || bytes + size > maxBytes) return false;
-      entries.push({ t, size });
-      bytes += size;
-      return true;
-    },
-  };
-}
 
 function isValidTarget(host, port) {
   return typeof host === 'string'
@@ -307,8 +292,8 @@ function createUdpEndpoint({
       writeChain: Promise.resolve(),
       queuedWrites: 0,
       pendingWrites: new Set(),
-      sendLimiter: createLimiter(lim.sendsPerSecond, lim.sendBytesPerSecond),
-      recvLimiter: createLimiter(lim.recvPerSecond, lim.recvBytesPerSecond),
+      sendLimiter: createWindowLimiter(lim.sendsPerSecond, lim.sendBytesPerSecond),
+      recvLimiter: createWindowLimiter(lim.recvPerSecond, lim.recvBytesPerSecond),
       recvDropped: 0,
       lastFloodReport: 0,
     };
